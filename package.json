@@ -1,0 +1,20 @@
+{
+  "name": "disk-usage",
+  "version": "1.0.0",
+  "author": "SpiralP <spiral.palmer@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "dev": "parcel web/index.html",
+    "build": "parcel build web/index.html",
+    "watch": "parcel watch web/index.html"
+  },
+  "devDependencies": {
+    "@types/react": "^16.8.17",
+    "@types/react-dom": "^16.8.4",
+    "typescript": "^3.4.5"
+  },
+  "dependencies": {
+    "react": "^16.8.6",
+    "react-dom": "^16.8.6"
+  }
+}
