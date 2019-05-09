@@ -8,7 +8,7 @@ mod web_server;
 use self::{logger::initialize_logger, web_server::start_web_server};
 
 fn main() {
-  initialize_logger(true);
+  initialize_logger(false);
 
   start_web_server();
 }
