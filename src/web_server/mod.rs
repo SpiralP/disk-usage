@@ -3,27 +3,37 @@
 mod static_files_includedir;
 mod websocket_actor;
 
-use self::{static_files_includedir::StaticFilesIncludedir, websocket_actor::*};
-use actix_web::{http, server, ws, App, Path, Responder};
+use self::{static_files_includedir::*, websocket_actor::*};
+use actix::prelude::*;
+use actix_web::{
+  get, middleware,
+  web::{self, Path},
+  App, Error, HttpRequest, HttpResponse, HttpServer,
+};
+use actix_web_actors::ws;
 
 include!(concat!(env!("OUT_DIR"), "/web_files.rs"));
 
 
-fn index(info: Path<(u32, String)>) -> impl Responder {
-  format!("Hello {}! id:{}", info.1, info.0)
-}
-
 pub fn start_web_server() {
-  server::new(|| {
+  HttpServer::new(|| {
     App::new()
-      .route("/{id}/{name}/index.html", http::Method::GET, index)
-      .resource("/ws", |r| {
-        r.method(http::Method::GET)
-          .f(|request| ws::start(request, WebSocketActor::new()))
+      .data(MyData {
+        base_path: "dist",
+        files: &WEB_FILES,
       })
-      .handler("/", StaticFilesIncludedir::new(&WEB_FILES, "dist"))
+      .service(
+        web::resource("/ws")
+          .default_service(web::route().to(HttpResponse::MethodNotAllowed))
+          .route(
+            web::get()
+              .to(|req: HttpRequest, stream: web::Payload| ws::start(WebsocketActor, &req, stream)),
+          ),
+      )
+      .service(static_files_service)
   })
   .bind("127.0.0.1:8080")
   .unwrap()
-  .run();
+  .run()
+  .unwrap();
 }

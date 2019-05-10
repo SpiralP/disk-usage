@@ -1,8 +1,8 @@
 Arguments: 
-  C:\Program Files\nodejs\node.exe C:\Program Files (x86)\Yarn\bin\yarn.js add react
+  C:\Program Files\nodejs\node.exe C:\Program Files (x86)\Yarn\bin\yarn.js
 
 PATH: 
-  C:\Users\SpiralP\AppData\Local\Temp\yarn--1557380255750-0.23167236647292055;F:\unison\Projects\rust-disk-usage\node_modules\.bin;C:\Users\SpiralP\AppData\Local\Yarn\Data\link\node_modules\.bin;C:\Program Files\libexec\lib\node_modules\npm\bin\node-gyp-bin;C:\Program Files\lib\node_modules\npm\bin\node-gyp-bin;C:\Program Files\nodejs\node_modules\npm\bin\node-gyp-bin;C:\Users\SpiralP\archive\cmder\bin;C:\ProgramData\DockerDesktop\version-bin;C:\Program Files\Docker\Docker\Resources\bin;D:\Python27\;D:\Python27\Scripts;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Windows\System32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Python27;C:\Program Files\TortoiseSVN\bin;C:\Program Files\Git\cmd;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\Yarn\bin\;C:\Program Files\nodejs\;F:\.cargo\bin;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;D:\Python27\Scripts\;D:\Python27\;D:\Python36\Scripts\;C:\Users\SpiralP\AppData\Roaming\Python\Python36\Scripts;D:\Python36\;C:\Program Files\Docker\Docker\Resources\bin;C:\Users\SpiralP\AppData\Local\Microsoft\WindowsApps;C:\Program Files\Microsoft VS Code\bin;C:\Program Files (x86)\LuaRocks;D:\Perl64\bin;.\node_modules\.bin;C:\Program Files (x86)\Yarn\bin\;C:\Program Files\nodejs\;C:\ProgramData\chocolatey\bin;C:\Program Files\Git\cmd;C:\Program Files\dotnet\;D:\Programs\Cppcheck;C:\WINDOWS\System32\Wbem;D:\Programs\CMake\bin;D:\prefix\bin;D:\prefix\bin\ncat;D:\Android\android-sdk\platform-tools;D:\Android\android-27-toolchain\bin;C:\Users\SpiralP\AppData\Local\Yarn\Data\global\node_modules\.bin;C:\Users\SpiralP\AppData\Local\Programs\Microsoft VS Code\bin;D:\prefix\bin\gnuplot;C:\Program Files\7-Zip-Zstandard;C:\Users\SpiralP\AppData\Local\Yarn\bin;C:\Users\SpiralP\AppData\Roaming\npm;C:\Users\SpiralP\.dotnet\tools;C:\Program Files\Git\usr\bin;C:\Program Files\Git\usr\share\vim\vim74;C:\Users\SpiralP\archive\cmder\
+  C:\Users\SpiralP\archive\cmder\bin;C:\ProgramData\DockerDesktop\version-bin;C:\Program Files\Docker\Docker\Resources\bin;D:\Python27\;D:\Python27\Scripts;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;C:\Windows\System32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\Program Files\dotnet\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Python27;C:\Program Files\TortoiseSVN\bin;C:\Program Files\Git\cmd;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files (x86)\Yarn\bin\;C:\Program Files\nodejs\;F:\.cargo\bin;C:\Program Files (x86)\Common Files\Oracle\Java\javapath;D:\Python27\Scripts\;D:\Python27\;D:\Python36\Scripts\;C:\Users\SpiralP\AppData\Roaming\Python\Python36\Scripts;D:\Python36\;C:\Program Files\Docker\Docker\Resources\bin;C:\Users\SpiralP\AppData\Local\Microsoft\WindowsApps;C:\Program Files\Microsoft VS Code\bin;C:\Program Files (x86)\LuaRocks;D:\Perl64\bin;.\node_modules\.bin;C:\Program Files (x86)\Yarn\bin\;C:\Program Files\nodejs\;C:\ProgramData\chocolatey\bin;C:\Program Files\Git\cmd;C:\Program Files\dotnet\;D:\Programs\Cppcheck;C:\WINDOWS\System32\Wbem;D:\Programs\CMake\bin;D:\prefix\bin;D:\prefix\bin\ncat;D:\Android\android-sdk\platform-tools;D:\Android\android-27-toolchain\bin;C:\Users\SpiralP\AppData\Local\Yarn\Data\global\node_modules\.bin;C:\Users\SpiralP\AppData\Local\Programs\Microsoft VS Code\bin;D:\prefix\bin\gnuplot;C:\Program Files\7-Zip-Zstandard;C:\Users\SpiralP\AppData\Local\Yarn\bin;C:\Users\SpiralP\AppData\Roaming\npm;C:\Users\SpiralP\.dotnet\tools;C:\Program Files\Git\usr\bin;C:\Program Files\Git\usr\share\vim\vim74;C:\Users\SpiralP\archive\cmder\
 
 Yarn version: 
   1.15.2
@@ -14,17 +14,7 @@ Platform:
   win32 x64
 
 Trace: 
-  Error: EPIPE: broken pipe, write
-      at Socket._write (internal/net.js:58:25)
-      at doWrite (_stream_writable.js:415:12)
-      at writeOrBuffer (_stream_writable.js:399:5)
-      at Socket.Writable.write (_stream_writable.js:299:11)
-      at Object.clearLine (readline.js:1200:12)
-      at clearLine (C:\Program Files (x86)\Yarn\lib\cli.js:48575:12)
-      at ConsoleReporter.warn (C:\Program Files (x86)\Yarn\lib\cli.js:91897:43)
-      at Add.<anonymous> (C:\Program Files (x86)\Yarn\lib\cli.js:7182:23)
-      at Generator.next (<anonymous>)
-      at step (C:\Program Files (x86)\Yarn\lib\cli.js:304:30)
+  Error: EPERM: operation not permitted, scandir 'F:\unison\Projects\rust-disk-usage\node_modules\@types'
 
 npm manifest: 
   {
@@ -38,7 +28,14 @@ npm manifest:
       "watch": "parcel watch web/index.html"
     },
     "devDependencies": {
+      "@types/react": "^16.8.17",
+      "@types/react-dom": "^16.8.4",
       "typescript": "^3.4.5"
+    },
+    "dependencies": {
+      "events": "^3.0.0",
+      "react": "^16.8.6",
+      "react-dom": "^16.8.6"
     }
   }
 
@@ -49,6 +46,95 @@ Lockfile:
   # THIS IS AN AUTOGENERATED FILE. DO NOT EDIT THIS FILE DIRECTLY.
   # yarn lockfile v1
   
+  
+  "@types/prop-types@*":
+    version "15.7.1"
+    resolved "https://registry.yarnpkg.com/@types/prop-types/-/prop-types-15.7.1.tgz#f1a11e7babb0c3cad68100be381d1e064c68f1f6"
+    integrity sha512-CFzn9idOEpHrgdw8JsoTkaDDyRWk1jrzIV8djzcgpq0y9tG4B4lFT+Nxh52DVpDXV+n4+NPNv7M1Dj5uMp6XFg==
+  
+  "@types/react-dom@^16.8.4":
+    version "16.8.4"
+    resolved "https://registry.yarnpkg.com/@types/react-dom/-/react-dom-16.8.4.tgz#7fb7ba368857c7aa0f4e4511c4710ca2c5a12a88"
+    integrity sha512-eIRpEW73DCzPIMaNBDP5pPIpK1KXyZwNgfxiVagb5iGiz6da+9A5hslSX6GAQKdO7SayVCS/Fr2kjqprgAvkfA==
+    dependencies:
+      "@types/react" "*"
+  
+  "@types/react@*", "@types/react@^16.8.17":
+    version "16.8.17"
+    resolved "https://registry.yarnpkg.com/@types/react/-/react-16.8.17.tgz#f287b76a5badb93bc9aa3f54521a3eb53d6c2374"
+    integrity sha512-pln3mgc6VfkNg92WXODul/ONo140huK9OMsx62GlBlZ2lvjNK86PQJhYMPLO1i66aF5O9OPyZefogvNltBIszA==
+    dependencies:
+      "@types/prop-types" "*"
+      csstype "^2.2.0"
+  
+  csstype@^2.2.0:
+    version "2.6.4"
+    resolved "https://registry.yarnpkg.com/csstype/-/csstype-2.6.4.tgz#d585a6062096e324e7187f80e04f92bd0f00e37f"
+    integrity sha512-lAJUJP3M6HxFXbqtGRc0iZrdyeN+WzOWeY0q/VnFzI+kqVrYIzC7bWlKqCW7oCIdzoPkvfp82EVvrTlQ8zsWQg==
+  
+  events@^3.0.0:
+    version "3.0.0"
+    resolved "https://registry.yarnpkg.com/events/-/events-3.0.0.tgz#9a0a0dfaf62893d92b875b8f2698ca4114973e88"
+    integrity sha512-Dc381HFWJzEOhQ+d8pkNon++bk9h6cdAoAj4iE6Q4y6xgTzySWXlKn05/TVNpjnfRqi/X0EpJEJohPjNI3zpVA==
+  
+  "js-tokens@^3.0.0 || ^4.0.0":
+    version "4.0.0"
+    resolved "https://registry.yarnpkg.com/js-tokens/-/js-tokens-4.0.0.tgz#19203fb59991df98e3a287050d4647cdeaf32499"
+    integrity sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==
+  
+  loose-envify@^1.1.0, loose-envify@^1.4.0:
+    version "1.4.0"
+    resolved "https://registry.yarnpkg.com/loose-envify/-/loose-envify-1.4.0.tgz#71ee51fa7be4caec1a63839f7e682d8132d30caf"
+    integrity sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==
+    dependencies:
+      js-tokens "^3.0.0 || ^4.0.0"
+  
+  object-assign@^4.1.1:
+    version "4.1.1"
+    resolved "https://registry.yarnpkg.com/object-assign/-/object-assign-4.1.1.tgz#2109adc7965887cfc05cbbd442cac8bfbb360863"
+    integrity sha1-IQmtx5ZYh8/AXLvUQsrIv7s2CGM=
+  
+  prop-types@^15.6.2:
+    version "15.7.2"
+    resolved "https://registry.yarnpkg.com/prop-types/-/prop-types-15.7.2.tgz#52c41e75b8c87e72b9d9360e0206b99dcbffa6c5"
+    integrity sha512-8QQikdH7//R2vurIJSutZ1smHYTcLpRWEOlHnzcWHmBYrOGUysKwSsrC89BCiFj3CbrfJ/nXFdJepOVrY1GCHQ==
+    dependencies:
+      loose-envify "^1.4.0"
+      object-assign "^4.1.1"
+      react-is "^16.8.1"
+  
+  react-dom@^16.8.6:
+    version "16.8.6"
+    resolved "https://registry.yarnpkg.com/react-dom/-/react-dom-16.8.6.tgz#71d6303f631e8b0097f56165ef608f051ff6e10f"
+    integrity sha512-1nL7PIq9LTL3fthPqwkvr2zY7phIPjYrT0jp4HjyEQrEROnw4dG41VVwi/wfoCneoleqrNX7iAD+pXebJZwrwA==
+    dependencies:
+      loose-envify "^1.1.0"
+      object-assign "^4.1.1"
+      prop-types "^15.6.2"
+      scheduler "^0.13.6"
+  
+  react-is@^16.8.1:
+    version "16.8.6"
+    resolved "https://registry.yarnpkg.com/react-is/-/react-is-16.8.6.tgz#5bbc1e2d29141c9fbdfed456343fe2bc430a6a16"
+    integrity sha512-aUk3bHfZ2bRSVFFbbeVS4i+lNPZr3/WM5jT2J5omUVV1zzcs1nAaf3l51ctA5FFvCRbhrH0bdAsRRQddFJZPtA==
+  
+  react@^16.8.6:
+    version "16.8.6"
+    resolved "https://registry.yarnpkg.com/react/-/react-16.8.6.tgz#ad6c3a9614fd3a4e9ef51117f54d888da01f2bbe"
+    integrity sha512-pC0uMkhLaHm11ZSJULfOBqV4tIZkx87ZLvbbQYunNixAAvjnC+snJCg0XQXn9VIsttVsbZP/H/ewzgsd5fxKXw==
+    dependencies:
+      loose-envify "^1.1.0"
+      object-assign "^4.1.1"
+      prop-types "^15.6.2"
+      scheduler "^0.13.6"
+  
+  scheduler@^0.13.6:
+    version "0.13.6"
+    resolved "https://registry.yarnpkg.com/scheduler/-/scheduler-0.13.6.tgz#466a4ec332467b31a91b9bf74e5347072e4cd889"
+    integrity sha512-IWnObHt413ucAYKsD9J1QShUKkbKLQQHdxRyw73sw4FN26iWr3DY/H34xGPe4nmL1DwXyWmSWmMrA9TfQbE/XQ==
+    dependencies:
+      loose-envify "^1.1.0"
+      object-assign "^4.1.1"
   
   typescript@^3.4.5:
     version "3.4.5"
