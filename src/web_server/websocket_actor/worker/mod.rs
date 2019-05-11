@@ -2,10 +2,11 @@ use super::*;
 use actix::prelude::*;
 use actix_web::{middleware, web, App, Error, HttpRequest, HttpResponse, HttpServer};
 use actix_web_actors::ws;
+use crossbeam::channel::TryRecvError;
 use directory_size::*;
 use serde::Serialize;
 use serde_json;
-use std::{path::PathBuf, thread};
+use std::{path::PathBuf, thread, time::Duration};
 
 pub struct Worker {
   ws: Addr<WebSocketActor>,
@@ -30,30 +31,75 @@ impl Actor for Worker {
     println!("worker started");
 
     // send start
-    // self.ws.do_send(Message(
-    //   // TODO make a message type for json stuff
-    //   serde_json::to_string(&WorkerStartMessage {
-    //     id: format!("{}", self.id),
-    //     state: WorkerState::Start,
-    //     r#type: self.module.as_ref().unwrap().get_type(),
-    //   })
-    //   .unwrap(),
-    // ));
+    self.ws.do_send(
+      serde_json::to_string(&FileSizeStatusJson::Start)
+        .unwrap()
+        .into(),
+    );
 
-    let ws = self.ws.clone();
     let root_path = self.root_path.clone();
-    thread::spawn(move || {
-      let (scanner, receiver) = FileSizeScanner::start(root_path);
+    let ws = self.ws.clone();
+    let ctx = ctx.address();
 
-      // TODO maybe buffer many messages in chunks
-      for file in receiver {
-        ws.do_send(StringMessage(
-          serde_json::to_string(&FileSizeJson::from(file)).unwrap(),
-        ));
-      }
-      println!("done sending all");
+    let (scanner, receiver) = FileSizeScanner::start(root_path);
+
+    thread::spawn(move || {
+      thread::sleep(Duration::from_millis(512));
+
+
+      loop {
+
+        // send chunk
+        let mut chunk = Vec::new();
+        let mut finished = false;
+        let mut take_a_break = false;
+        for _ in 0..10240 {
+          // limit chunk size because it's hella big and makes chrome lag
+
+          match receiver.try_recv() {
+            Ok(file) => {
+              chunk.push(FileSizeJson::from(file));
+            }
+
+            Err(e) => match e {
+              TryRecvError::Empty => {
+                take_a_break = true;
+              }
+              _ => {
+                finished = true;
+                break;
+              }
+            },
+          }
+        }
+
+        println!("chunk with {}", chunk.len());
+        ws.do_send(
+          serde_json::to_string(&FileSizeStatusJson::Chunk(chunk))
+            .unwrap()
+            .into(),
+        );
+
+        if finished {
+          break;
+        }
+
+        if take_a_break {
+          thread::sleep(Duration::from_millis(512));
+        }
+      } // loop
 
       scanner.join();
+
+      // send finish
+      ws.do_send(
+        serde_json::to_string(&FileSizeStatusJson::Finish)
+          .unwrap()
+          .into(),
+      );
+
+
+      ctx.do_send(Stop);
     });
   }
 
@@ -88,6 +134,16 @@ impl Handler<Stop> for Worker {
 
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(tag = "t", content = "c")]
+enum FileSizeStatusJson {
+  Start,
+  Chunk(Vec<FileSizeJson>),
+  Finish,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct FileSizeJson(PathBuf, u64);
 impl From<FileSize> for FileSizeJson {
   fn from(o: FileSize) -> Self {

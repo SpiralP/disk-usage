@@ -14,12 +14,13 @@ export default class FileSizeWorker extends React.Component<
   FileSizeWorkerState
 > {
   state = { totalSize: 0 };
+  startTime = 0;
 
   componentDidMount() {
     const { emitter } = this.props;
     emitter.on("receive", this.receiver);
 
-    emitter.emit("send", "."); // TODO send root path
+    emitter.emit("send", "D:\\Programs\\");
   }
 
   componentWillUnmount() {
@@ -28,10 +29,22 @@ export default class FileSizeWorker extends React.Component<
   }
 
   receiver = (data: string) => {
-    const [path, size] = JSON.parse(data) as FileSizeMessage;
+    const parsed = JSON.parse(data) as FileSizeStatus;
+    if (parsed.t === "start") {
+      this.startTime = Date.now();
+    } else if (parsed.t === "finish") {
+      console.log(Date.now() - this.startTime);
+    } else if (parsed.t === "chunk") {
+      const files = parsed.c;
 
-    const totalSize = this.state.totalSize + size;
-    this.setState({ totalSize });
+      let chunkSize = 0;
+      files.forEach(([path, size]) => {
+        chunkSize += size;
+      });
+
+      const totalSize = this.state.totalSize + chunkSize;
+      this.setState({ totalSize });
+    }
   };
 
   render() {
@@ -41,4 +54,22 @@ export default class FileSizeWorker extends React.Component<
   }
 }
 
-type FileSizeMessage = [string, number];
+type FileSize = [string, number];
+
+interface FileSizeStatusStart {
+  t: "start";
+  c: undefined;
+}
+interface FileSizeStatusChunk {
+  t: "chunk";
+  c: Array<FileSize>;
+}
+interface FileSizeStatusFinish {
+  t: "finish";
+  c: undefined;
+}
+
+type FileSizeStatus =
+  | FileSizeStatusStart
+  | FileSizeStatusChunk
+  | FileSizeStatusFinish;
