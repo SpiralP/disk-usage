@@ -25,10 +25,17 @@ function connectWebSocket(path: string): Promise<EventEmitter> {
         ee.removeAllListeners("send");
       };
 
+      ws.binaryType = "arraybuffer";
       ws.onmessage = (response) => {
         const { data } = response;
 
-        ee.emit("receive", data);
+        // if (typeof data === "string") {
+        const parsed = JSON.parse(data);
+        // } else if (data instanceof ArrayBuffer) {
+        // const parsed = messagePack.decode(Buffer.from(data));
+        // }
+
+        ee.emit("receive", parsed);
       };
 
       ee.on("send", (message: string) => {

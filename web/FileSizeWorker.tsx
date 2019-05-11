@@ -28,14 +28,14 @@ export default class FileSizeWorker extends React.Component<
     emitter.off("receive", this.receiver);
   }
 
-  receiver = (data: string) => {
-    const parsed = JSON.parse(data) as FileSizeStatus;
-    if (parsed.t === "start") {
+  tree = {};
+  receiver = (data: FileSizeStatus) => {
+    if (data.t === "start") {
       this.startTime = Date.now();
-    } else if (parsed.t === "finish") {
+    } else if (data.t === "finish") {
       console.log(Date.now() - this.startTime);
-    } else if (parsed.t === "chunk") {
-      const files = parsed.c;
+    } else if (data.t === "chunk") {
+      const files = data.c;
 
       let chunkSize = 0;
       files.forEach(([path, size]) => {

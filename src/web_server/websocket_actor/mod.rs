@@ -1,7 +1,8 @@
-mod string_message;
+mod binary_message;
+mod text_message;
 mod worker;
 
-use self::{string_message::*, worker::*};
+use self::{binary_message::*, text_message::*, worker::*};
 use actix::prelude::*;
 use actix_web::{middleware, web, App, Error, HttpRequest, HttpResponse, HttpServer};
 use actix_web_actors::ws;
@@ -38,11 +39,20 @@ impl Actor for WebSocketActor {
   }
 }
 
-impl Handler<StringMessage> for WebSocketActor {
+impl Handler<TextMessage> for WebSocketActor {
   type Result = ();
 
-  fn handle(&mut self, msg: StringMessage, ctx: &mut Self::Context) -> Self::Result {
+  fn handle(&mut self, msg: TextMessage, ctx: &mut Self::Context) -> Self::Result {
     ctx.text(msg.0);
+  }
+}
+
+
+impl Handler<BinaryMessage> for WebSocketActor {
+  type Result = ();
+
+  fn handle(&mut self, msg: BinaryMessage, ctx: &mut Self::Context) -> Self::Result {
+    ctx.binary(msg.0);
   }
 }
 

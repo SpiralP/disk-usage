@@ -31,11 +31,9 @@ impl Actor for Worker {
     println!("worker started");
 
     // send start
-    self.ws.do_send(
-      serde_json::to_string(&FileSizeStatusJson::Start)
-        .unwrap()
-        .into(),
-    );
+    self.ws.do_send(TextMessage(
+      serde_json::to_string(&FileSizeStatusJson::Start).unwrap(),
+    ));
 
     let root_path = self.root_path.clone();
     let ws = self.ws.clone();
@@ -48,7 +46,6 @@ impl Actor for Worker {
 
 
       loop {
-
         // send chunk
         let mut chunk = Vec::new();
         let mut finished = false;
@@ -74,11 +71,9 @@ impl Actor for Worker {
         }
 
         println!("chunk with {}", chunk.len());
-        ws.do_send(
-          serde_json::to_string(&FileSizeStatusJson::Chunk(chunk))
-            .unwrap()
-            .into(),
-        );
+        ws.do_send(TextMessage(
+          serde_json::to_string(&FileSizeStatusJson::Chunk(chunk)).unwrap(),
+        ));
 
         if finished {
           break;
@@ -92,11 +87,9 @@ impl Actor for Worker {
       scanner.join();
 
       // send finish
-      ws.do_send(
-        serde_json::to_string(&FileSizeStatusJson::Finish)
-          .unwrap()
-          .into(),
-      );
+      ws.do_send(TextMessage(
+        serde_json::to_string(&FileSizeStatusJson::Finish).unwrap(),
+      ));
 
 
       ctx.do_send(Stop);
