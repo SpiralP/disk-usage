@@ -54,7 +54,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WebSocketActor {
       }
       ws::Message::Close(_) => ctx.stop(),
       _ => {
-        println!("other kind!");
+        println!("other kind! {:#?}", msg);
       }
     }
   }
