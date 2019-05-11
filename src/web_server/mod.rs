@@ -25,10 +25,9 @@ pub fn start_web_server() {
       .service(
         web::resource("/ws")
           .default_service(web::route().to(HttpResponse::MethodNotAllowed))
-          .route(
-            web::get()
-              .to(|req: HttpRequest, stream: web::Payload| ws::start(WebsocketActor, &req, stream)),
-          ),
+          .route(web::get().to(|req: HttpRequest, stream: web::Payload| {
+            ws::start(WebSocketActor::new(), &req, stream)
+          })),
       )
       .service(static_files_service)
   })
