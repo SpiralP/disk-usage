@@ -20,7 +20,7 @@ export default class FileSizeWorker extends React.Component<
     const { emitter } = this.props;
     emitter.on("receive", this.receiver);
 
-    emitter.emit("send", "D:\\Programs\\");
+    emitter.emit("send", "src");
   }
 
   componentWillUnmount() {
@@ -28,7 +28,7 @@ export default class FileSizeWorker extends React.Component<
     emitter.off("receive", this.receiver);
   }
 
-  tree = {};
+  tree: any = {};
   receiver = (data: FileSizeStatus) => {
     if (data.t === "start") {
       this.startTime = Date.now();
@@ -36,12 +36,25 @@ export default class FileSizeWorker extends React.Component<
       console.log(Date.now() - this.startTime);
     } else if (data.t === "chunk") {
       const files = data.c;
-
       let chunkSize = 0;
-      files.forEach(([path, size]) => {
+      files.forEach(([pathComponents, size]) => {
         chunkSize += size;
+
+        let ag = this.tree;
+        pathComponents.forEach((component, i) => {
+          if (i === pathComponents.length - 1) return;
+
+          if (typeof ag[component] === "undefined") {
+            ag[component] = {};
+          }
+          ag = ag[component];
+        });
+
+        const fileName = pathComponents[pathComponents.length - 1];
+        ag[fileName] = size;
       });
 
+      console.log(this.tree);
       const totalSize = this.state.totalSize + chunkSize;
       this.setState({ totalSize });
     }
@@ -54,7 +67,7 @@ export default class FileSizeWorker extends React.Component<
   }
 }
 
-type FileSize = [string, number];
+type FileSize = [Array<string>, number];
 
 interface FileSizeStatusStart {
   t: "start";

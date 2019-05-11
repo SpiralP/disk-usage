@@ -135,9 +135,15 @@ enum FileSizeStatusJson {
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct FileSizeJson(PathBuf, u64);
+struct FileSizeJson(Vec<String>, u64);
 impl From<FileSize> for FileSizeJson {
   fn from(o: FileSize) -> Self {
-    Self(o.0, o.1)
+    Self(
+      o.0
+        .iter()
+        .map(|os_str| os_str.to_string_lossy().to_string())
+        .collect(),
+      o.1,
+    )
   }
 }
