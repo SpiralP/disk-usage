@@ -1,7 +1,5 @@
 use super::*;
 use actix::prelude::*;
-use actix_web::{middleware, web, App, Error, HttpRequest, HttpResponse, HttpServer};
-use actix_web_actors::ws;
 use crossbeam::channel::TryRecvError;
 use directory_size::*;
 use serde::Serialize;

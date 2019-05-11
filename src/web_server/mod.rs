@@ -4,12 +4,7 @@ mod static_files_includedir;
 mod websocket_actor;
 
 use self::{static_files_includedir::*, websocket_actor::*};
-use actix::prelude::*;
-use actix_web::{
-  get, middleware,
-  web::{self, Path},
-  App, Error, HttpRequest, HttpResponse, HttpServer,
-};
+use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer};
 use actix_web_actors::ws;
 
 include!(concat!(env!("OUT_DIR"), "/web_files.rs"));

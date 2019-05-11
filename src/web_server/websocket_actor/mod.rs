@@ -4,7 +4,6 @@ mod worker;
 
 use self::{binary_message::*, text_message::*, worker::*};
 use actix::prelude::*;
-use actix_web::{middleware, web, App, Error, HttpRequest, HttpResponse, HttpServer};
 use actix_web_actors::ws;
 
 

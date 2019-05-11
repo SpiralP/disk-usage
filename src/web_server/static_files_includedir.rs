@@ -1,21 +1,5 @@
-use actix::prelude::*;
-use actix_web::{
-  get, middleware,
-  web::{self, Path},
-  App, Error, HttpRequest, HttpResponse, HttpServer,
-};
+use actix_web::{get, web, HttpRequest, HttpResponse};
 use includedir;
-
-pub struct StaticFilesIncludedir {
-  base_path: &'static str,
-  files: &'static includedir::Files,
-}
-
-impl StaticFilesIncludedir {
-  pub fn new(files: &'static includedir::Files, base_path: &'static str) -> Self {
-    Self { files, base_path }
-  }
-}
 
 // impl Handler<S> for StaticFilesIncludedir {
 //   type Result = Result<HttpResponse, Error>;
