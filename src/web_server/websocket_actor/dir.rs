@@ -2,12 +2,14 @@ use serde::Serialize;
 use std::{fs, path::*};
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(tag = "type")]
 pub enum Entry {
-  File(String, u64),
-  Directory(String),
+  File { name: String, size: u64 },
+  Directory { name: String },
 }
 
-pub fn get_directory_entries(root_path: PathBuf) -> Vec<Entry> {
+pub fn get_directory_entries(root_path: &PathBuf) -> Vec<Entry> {
   fs::read_dir(root_path)
     .unwrap()
     .map(|maybe_entry| {
@@ -19,9 +21,12 @@ pub fn get_directory_entries(root_path: PathBuf) -> Vec<Entry> {
       let metadata = entry.metadata().unwrap();
 
       if file_type.is_dir() {
-        Entry::Directory(file_name)
+        Entry::Directory { name: file_name }
       } else {
-        Entry::File(file_name, metadata.len())
+        Entry::File {
+          name: file_name,
+          size: metadata.len(),
+        }
       }
     })
     .collect()

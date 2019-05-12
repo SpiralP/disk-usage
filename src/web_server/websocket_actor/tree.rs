@@ -1,5 +1,5 @@
 use super::FileSize;
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 #[derive(Debug)]
 pub enum Tree {
@@ -8,6 +8,10 @@ pub enum Tree {
 }
 
 impl Tree {
+  pub fn new() -> Self {
+    Tree::Directory(HashMap::new())
+  }
+
   pub fn entries(&self) -> &HashMap<String, Tree> {
     match self {
       Tree::Directory(map) => map,
@@ -23,10 +27,7 @@ impl Tree {
   }
 
   pub fn insert_file(&mut self, FileSize(path, size): FileSize) {
-    let mut components: Vec<String> = path
-      .iter()
-      .map(|os_str| os_str.to_string_lossy().to_string())
-      .collect();
+    let mut components = get_components(path);
 
     let file_name = components.pop().unwrap();
 
@@ -35,7 +36,7 @@ impl Tree {
       let entries = current.entries_mut();
 
       if !entries.contains_key(&component) {
-        entries.insert(component.clone(), Tree::Directory(HashMap::new()));
+        entries.insert(component.clone(), Tree::new());
       }
 
       current = entries.get_mut(&component).unwrap();
@@ -67,7 +68,7 @@ fn test_tree() {
 
   let (scanner, receiver) = FileSizeScanner::start("src".parse().unwrap());
 
-  let mut t = Tree::Directory(HashMap::new());
+  let mut t = Tree::new();
 
   for file in receiver {
     t.insert_file(file);
@@ -79,3 +80,9 @@ fn test_tree() {
   println!("{}", t.get_total_size());
 }
 
+pub fn get_components(path: PathBuf) -> Vec<String> {
+  path
+    .iter()
+    .map(|os_str| os_str.to_string_lossy().to_string())
+    .collect()
+}
