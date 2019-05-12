@@ -1,5 +1,6 @@
 import React from "react";
 import EventEmitter from "events";
+import FileTree from "./FileTree";
 
 interface FileSizeWorkerProps {
   emitter: EventEmitter;
@@ -20,7 +21,7 @@ export default class FileSizeWorker extends React.Component<
     const { emitter } = this.props;
     emitter.on("receive", this.receiver);
 
-    emitter.emit("send", "src");
+    emitter.emit("send", ".");
   }
 
   componentWillUnmount() {
@@ -63,7 +64,12 @@ export default class FileSizeWorker extends React.Component<
   render() {
     const { totalSize } = this.state;
 
-    return <h3>Total size: {totalSize}</h3>;
+    return (
+      <>
+        <h3>Total size: {totalSize}</h3>
+        <FileTree root="." tree={this.tree} />
+      </>
+    );
   }
 }
 

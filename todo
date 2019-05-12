@@ -1,0 +1,18 @@
+--- /home/spiralp ------------------------------------------------------------------------------------------------------
+    3.7 MiB [##########] /.local                                                                                            4.0 KiB [          ]  .bashrc
+    4.0 KiB [          ] /.config
+    4.0 KiB [          ]  .profile
+    0.0   B [          ]  .bash_history
+    0.0   B [          ]  .bash_logout
+    0.0   B [          ]  .sudo_as_admin_successful
+
+Total disk usage:   3.7 MiB
+
+
+
+
+- send all information to web for it to handle
+
+- only send some information
+like sizes and current folder entries only?
+
