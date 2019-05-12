@@ -26,6 +26,32 @@ impl Tree {
     }
   }
 
+  pub fn at(&self, components: Vec<String>) -> Option<&Tree> {
+    let mut current = self;
+    for component in components {
+      let entries = current.entries();
+
+      current = entries.get(&component)?;
+    }
+
+    Some(current)
+  }
+
+  pub fn at_path(&self, path: PathBuf) -> Option<&Tree> {
+    self.at(get_components(path))
+  }
+
+  pub fn at_mut(&mut self, components: Vec<String>) -> Option<&mut Tree> {
+    let mut current = self;
+    for component in components {
+      let entries = current.entries_mut();
+
+      current = entries.get_mut(&component)?;
+    }
+
+    Some(current)
+  }
+
   pub fn insert_file(&mut self, FileSize(path, size): FileSize) {
     let mut components = get_components(path);
 

@@ -42,20 +42,38 @@ impl Actor for WebSocketActor {
 
     let (_scanner, receiver) = FileSizeScanner::start(self.root_path.clone());
 
+    let current_dir: Vec<String> = get_components("src".parse().unwrap());
+
     thread::spawn(move || {
       let mut tree = Tree::new();
 
       for file in receiver {
-        let name = get_components(file.0.clone())[0].clone();
+        let components = get_components(file.0.clone());
         tree.insert_file(file);
 
-        addr.do_send(TextMessage(
-          serde_json::to_string(&WebSocketMessage::SizeUpdate {
-            name: name.clone(),
-            size: tree.entries().get(&name).unwrap().get_total_size(),
-          })
-          .unwrap(),
-        ));
+        let mut ok = true;
+        for (i, dir) in current_dir.iter().enumerate() {
+          if *dir != components[i] {
+            ok = false;
+            break;
+          }
+        }
+
+        // current_dir: ["src"]
+        // components:  ["src", "web_server", "bap.rs"]
+        if ok && (components.len() - 1) > current_dir.len() {
+          let relative_name = components[current_dir.len()].clone();
+          let mut bap = current_dir.clone();
+          bap.push(relative_name.clone());
+
+          addr.do_send(TextMessage(
+            serde_json::to_string(&WebSocketMessage::SizeUpdate {
+              name: relative_name.clone(),
+              size: tree.at(bap).unwrap().get_total_size(),
+            })
+            .unwrap(),
+          ));
+        }
       }
     });
 
