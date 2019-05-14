@@ -1,33 +1,69 @@
+use super::{get_components, Tree};
 use serde::Serialize;
 use std::{fs, path::*};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 pub enum Entry {
   File { name: String, size: u64 },
-  Directory { name: String },
+  Directory { name: String, size: u64 },
 }
 
-pub fn get_directory_entries(root_path: &PathBuf) -> Vec<Entry> {
-  fs::read_dir(root_path)
+pub fn get_directory_entries(
+  root_path: &Vec<String>,
+  path: Vec<String>,
+  tree: &Tree,
+) -> Vec<Entry> {
+  // root_path: ["src"]
+  // path: ["web_server", "websocket_actor"]
+
+
+  // src/web_server/websocket_actor
+  let full_path: PathBuf = root_path.iter().cloned().chain(path.clone()).collect();
+  let root_path: PathBuf = root_path.iter().collect();
+
+  fs::read_dir(full_path)
     .unwrap()
-    .map(|maybe_entry| {
+    .map(move |maybe_entry| {
       let entry = maybe_entry.unwrap();
 
       let path = entry.path();
-      let file_name = path.file_name().unwrap().to_string_lossy().to_string();
+      let name = path.file_name().unwrap().to_string_lossy().to_string();
       let file_type = entry.file_type().unwrap();
-      let metadata = entry.metadata().unwrap();
 
       if file_type.is_dir() {
-        Entry::Directory { name: file_name }
+        let relative_path =
+          get_components(&path.strip_prefix(root_path.clone()).unwrap().to_path_buf());
+
+        println!("{:#?}", relative_path);
+
+        let size = tree
+          .at(relative_path)
+          .map(|sub_tree| sub_tree.get_total_size())
+          .unwrap_or(0);
+        Entry::Directory { name, size }
       } else {
-        Entry::File {
-          name: file_name,
-          size: metadata.len(),
-        }
+        let metadata = entry.metadata().unwrap();
+
+        let size = metadata.len();
+        Entry::File { name, size }
       }
     })
     .collect()
 }
+
+// #[test]
+// fn test_get_directory_entries() {
+//   use super::FileSize;
+
+//   let mut tree = Tree::new();
+
+//   tree.insert_file(FileSize("hello.rs".parse().unwrap(), 123));
+//   tree.insert_file(FileSize("web_server/file.rs".parse().unwrap(), 123));
+
+//   println!(
+//     "{:#?}",
+//     get_directory_entries(&"src".parse().unwrap(), &tree)
+//   );
+// }

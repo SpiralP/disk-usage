@@ -1,6 +1,6 @@
 import React from "react";
 import EventEmitter from "events";
-import FileTree from "./FileTree";
+import FolderView from "./FolderView";
 
 interface FileSizeWorkerProps {
   emitter: EventEmitter;
@@ -8,19 +8,21 @@ interface FileSizeWorkerProps {
 
 interface FileSizeWorkerState {
   totalSize: number;
+  entries: Array<Entry>;
 }
 
 export default class FileSizeWorker extends React.Component<
   FileSizeWorkerProps,
   FileSizeWorkerState
 > {
-  state = { totalSize: 0 };
+  state = { totalSize: 0, entries: [] };
   startTime = 0;
 
   componentDidMount() {
     const { emitter } = this.props;
     emitter.on("receive", this.receiver);
 
+    // @ts-ignore
     global.ag = emitter;
   }
 
@@ -34,7 +36,6 @@ export default class FileSizeWorker extends React.Component<
     emitter.emit("send", JSON.stringify(msg));
   }
 
-  tree: any = {};
   receiver = (data: EventMessage) => {
     console.log(data);
     // if (data.t === "start") {
@@ -68,45 +69,13 @@ export default class FileSizeWorker extends React.Component<
   };
 
   render() {
-    const { totalSize } = this.state;
+    const { totalSize, entries } = this.state;
 
     return (
       <>
         <h3>Total size: {totalSize}</h3>
-        <FileTree root="." tree={this.tree} />
+        <FolderView entries={entries} />
       </>
     );
   }
 }
-
-interface EntryFile {
-  name: string;
-  size: number;
-}
-
-interface EntryDirectory {
-  name: string;
-  size: undefined;
-}
-
-type Entry = EntryFile | EntryDirectory;
-
-interface EventMessageDirectoryChange {
-  type: "directoryChange";
-  path: Array<string>;
-  entries: Array<Entry>;
-}
-
-interface EventMessageSizeUpdate {
-  type: "sizeUpdate";
-  size: number;
-}
-
-type EventMessage = EventMessageDirectoryChange | EventMessageSizeUpdate;
-
-interface ControlMessageChangeDirectory {
-  type: "changeDirectory";
-  path: Array<string>;
-}
-
-type ControlMessage = ControlMessageChangeDirectory;

@@ -16,7 +16,7 @@ use std::{path::PathBuf, thread, time::Duration};
 pub struct WebSocketActor {
   root_path: Vec<String>,
   current_dir: Vec<String>,
-  thread_sender: Option<Sender<EventMessage>>,
+  thread_sender: Option<Sender<ThreadControlMessage>>,
   scanner: Option<FileSizeScanner>,
 }
 
@@ -33,17 +33,48 @@ impl WebSocketActor {
   fn change_dir(&mut self, path: Vec<String>, ctx: &mut ws::WebsocketContext<Self>) {
     self.current_dir = path.clone();
 
-    let full_path: PathBuf = self.root_path.iter().cloned().chain(path.clone()).collect();
-    let entries = get_directory_entries(&full_path);
-
-    let msg = EventMessage::DirectoryChange { path, entries };
-
-    ctx
-      .address()
-      .do_send(TextMessage(serde_json::to_string(&msg).unwrap()));
-
-    self.thread_sender.as_ref().unwrap().send(msg).unwrap();
+    self
+      .thread_sender
+      .as_ref()
+      .unwrap()
+      .send(ThreadControlMessage::ChangeDirectory(path))
+      .unwrap();
   }
+}
+
+fn send_directory_change(
+  root_path: &Vec<String>,
+  path: Vec<String>,
+  tree: &Tree,
+  addr: &Addr<WebSocketActor>,
+) -> (Vec<String>, Vec<String>) {
+  let entries = get_directory_entries(root_path, path.clone(), &tree);
+  addr.do_send(TextMessage(
+    serde_json::to_string(&EventMessage::DirectoryChange {
+      path: path.clone(),
+      entries: entries.clone(),
+    })
+    .unwrap(),
+  ));
+
+  (
+    path,
+    entries
+      .iter()
+      .filter_map(|entry| {
+        if let Entry::Directory { name, size } = entry {
+          Some(name.to_owned())
+        } else {
+          None
+        }
+      })
+      .collect(),
+  )
+}
+
+
+enum ThreadControlMessage {
+  ChangeDirectory(Vec<String>),
 }
 
 impl Actor for WebSocketActor {
@@ -61,33 +92,21 @@ impl Actor for WebSocketActor {
 
     let _thread = {
       let addr = ctx.address();
-      let root_path: PathBuf = self.root_path.iter().collect();
+      let root_path: Vec<String> = self.root_path.clone();
 
-      let (scanner, file_receiver) = FileSizeScanner::start(root_path);
+      let (scanner, file_receiver) = FileSizeScanner::start(root_path.iter().collect());
       self.scanner = Some(scanner);
 
       thread::spawn(move || {
-        // get default current directory
+        let mut tree = Tree::new();
+
+        // wait for default current directory
         let (mut current_dir, mut subscribed_entries): (Vec<String>, Vec<String>) =
           match thread_receiver.recv().unwrap() {
-            EventMessage::DirectoryChange { path, entries } => (
-              path,
-              entries
-                .iter()
-                .filter_map(|entry| {
-                  if let Entry::Directory { name } = entry {
-                    Some(name.to_owned())
-                  } else {
-                    None
-                  }
-                })
-                .collect(),
-            ),
-            _ => unreachable!(),
+            ThreadControlMessage::ChangeDirectory(path) => {
+              send_directory_change(&root_path, path, &tree, &addr)
+            }
           };
-
-
-        let mut tree = Tree::new();
 
         loop {
           select! {
@@ -95,20 +114,12 @@ impl Actor for WebSocketActor {
               let control_message = control_message.unwrap();
 
               match control_message {
-                EventMessage::DirectoryChange { path, entries } => {
+                ThreadControlMessage::ChangeDirectory(path) => {
                   println!("thread got dir change! {:?}", path);
 
-                  current_dir = path;
-                  subscribed_entries = entries
-                    .iter()
-                    .filter_map(|entry| {
-                      if let Entry::Directory { name } = entry {
-                        Some(name.to_owned())
-                      } else {
-                        None
-                      }
-                    })
-                    .collect();
+                  let (a, b) = send_directory_change(&root_path, path, &tree, &addr);
+                  current_dir = a;
+                  subscribed_entries = b;
                 }
 
                 _ => unreachable!("control_message")
@@ -117,7 +128,7 @@ impl Actor for WebSocketActor {
 
             recv(file_receiver) -> file => {
               let file = match file {
-                Ok(ag) => ag,
+                Ok(send_directory_change) => send_directory_change,
                 Err(e) => {
                   break;
                 }
@@ -155,29 +166,10 @@ impl Actor for WebSocketActor {
 
         for control_message in thread_receiver {
           match control_message {
-            EventMessage::DirectoryChange {
-              ref path,
-              ref entries,
-            } => {
+            ThreadControlMessage::ChangeDirectory(path) => {
               println!("thread got dir change (after live update)! {:?}", path);
 
-
-              for entry in entries {
-                if let Entry::Directory { name } = entry {
-                  let mut bap = path.clone();
-                  bap.push(name.clone());
-
-                  let size = tree.at(bap).unwrap().get_total_size();
-
-                  addr.do_send(TextMessage(
-                    serde_json::to_string(&EventMessage::SizeUpdate {
-                      name: name.clone(),
-                      size,
-                    })
-                    .unwrap(),
-                  ));
-                }
-              }
+              let (path, entries) = send_directory_change(&root_path, path, &tree, &addr);
             }
 
             _ => unreachable!("control_message"),
