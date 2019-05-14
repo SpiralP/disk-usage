@@ -15,14 +15,14 @@ impl Tree {
   pub fn entries(&self) -> &HashMap<String, Tree> {
     match self {
       Tree::Directory(map) => map,
-      _ => unreachable!(),
+      _ => unreachable!("entries"),
     }
   }
 
   pub fn entries_mut(&mut self) -> &mut HashMap<String, Tree> {
     match self {
       Tree::Directory(map) => map,
-      _ => unreachable!(),
+      _ => unreachable!("entries_mut"),
     }
   }
 
@@ -38,7 +38,7 @@ impl Tree {
   }
 
   pub fn at_path(&self, path: PathBuf) -> Option<&Tree> {
-    self.at(get_components(path))
+    self.at(get_components(&path))
   }
 
   pub fn at_mut(&mut self, components: Vec<String>) -> Option<&mut Tree> {
@@ -53,9 +53,9 @@ impl Tree {
   }
 
   pub fn insert_file(&mut self, FileSize(path, size): FileSize) {
-    let mut components = get_components(path);
+    let mut components = get_components(&path);
 
-    let file_name = components.pop().unwrap();
+    let file_name = components.pop().expect("file_name");
 
     let mut current = self;
     for component in components {
@@ -65,7 +65,7 @@ impl Tree {
         entries.insert(component.clone(), Tree::new());
       }
 
-      current = entries.get_mut(&component).unwrap();
+      current = entries.get_mut(&component).expect("get_mut");
     }
 
     current.entries_mut().insert(file_name, Tree::File(size));
@@ -106,7 +106,7 @@ fn test_tree() {
   println!("{}", t.get_total_size());
 }
 
-pub fn get_components(path: PathBuf) -> Vec<String> {
+pub fn get_components(path: &PathBuf) -> Vec<String> {
   path
     .iter()
     .map(|os_str| os_str.to_string_lossy().to_string())

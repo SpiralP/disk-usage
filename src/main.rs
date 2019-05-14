@@ -10,5 +10,5 @@ use self::{logger::initialize_logger, web_server::start_web_server};
 fn main() {
   initialize_logger(false);
 
-  start_web_server();
+  start_web_server("src".parse().unwrap());
 }

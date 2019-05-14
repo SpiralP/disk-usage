@@ -20,8 +20,6 @@ export default class FileSizeWorker extends React.Component<
   componentDidMount() {
     const { emitter } = this.props;
     emitter.on("receive", this.receiver);
-
-    emitter.emit("send", ".");
   }
 
   componentWillUnmount() {
@@ -29,8 +27,13 @@ export default class FileSizeWorker extends React.Component<
     emitter.off("receive", this.receiver);
   }
 
+  send(msg: ControlMessage) {
+    const { emitter } = this.props;
+    emitter.emit("send", JSON.stringify(msg));
+  }
+
   tree: any = {};
-  receiver = (data: WebSocketMessage) => {
+  receiver = (data: EventMessage) => {
     console.log(data);
     // if (data.t === "start") {
     //   this.startTime = Date.now();
@@ -86,16 +89,22 @@ interface EntryDirectory {
 
 type Entry = EntryFile | EntryDirectory;
 
-interface WebSocketMessageDirectoryChange {
+interface EventMessageDirectoryChange {
   type: "directoryChange";
+  path: Array<string>;
   entries: Array<Entry>;
 }
 
-interface WebSocketMessageSizeUpdate {
+interface EventMessageSizeUpdate {
   type: "sizeUpdate";
   size: number;
 }
 
-type WebSocketMessage =
-  | WebSocketMessageDirectoryChange
-  | WebSocketMessageSizeUpdate;
+type EventMessage = EventMessageDirectoryChange | EventMessageSizeUpdate;
+
+interface ControlMessageChangeDirectory {
+  type: "changeDirectory";
+  path: Array<string>;
+}
+
+type ControlMessage = ControlMessageChangeDirectory;
