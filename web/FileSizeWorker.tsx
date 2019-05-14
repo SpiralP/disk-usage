@@ -20,6 +20,8 @@ export default class FileSizeWorker extends React.Component<
   componentDidMount() {
     const { emitter } = this.props;
     emitter.on("receive", this.receiver);
+
+    global.ag = emitter;
   }
 
   componentWillUnmount() {

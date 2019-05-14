@@ -6,22 +6,18 @@ mod tree;
 use self::{binary_message::*, dir::*, text_message::*, tree::*};
 use actix::prelude::*;
 use actix_web_actors::ws;
-use crossbeam::channel::{self, Sender, TryRecvError};
+use crossbeam::channel::{self, select, Sender, TryRecvError};
 use directory_size::*;
 use log::*;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::{
-  path::PathBuf,
-  sync::{Arc, Mutex},
-  thread,
-  time::Duration,
-};
+use std::{path::PathBuf, thread, time::Duration};
 
 pub struct WebSocketActor {
   root_path: Vec<String>,
   current_dir: Vec<String>,
   thread_sender: Option<Sender<EventMessage>>,
+  scanner: Option<FileSizeScanner>,
 }
 
 impl WebSocketActor {
@@ -30,6 +26,7 @@ impl WebSocketActor {
       root_path: get_components(root_path),
       current_dir: Vec::new(),
       thread_sender: None,
+      scanner: None,
     }
   }
 
@@ -66,6 +63,9 @@ impl Actor for WebSocketActor {
       let addr = ctx.address();
       let root_path: PathBuf = self.root_path.iter().collect();
 
+      let (scanner, file_receiver) = FileSizeScanner::start(root_path);
+      self.scanner = Some(scanner);
+
       thread::spawn(move || {
         // get default current directory
         let (mut current_dir, mut subscribed_entries): (Vec<String>, Vec<String>) =
@@ -86,41 +86,102 @@ impl Actor for WebSocketActor {
             _ => unreachable!(),
           };
 
-        current_dir = vec!["web_server".to_string()];
 
         let mut tree = Tree::new();
 
-        let (_scanner, receiver) = FileSizeScanner::start(root_path);
+        loop {
+          select! {
+            recv(thread_receiver) -> control_message => {
+              let control_message = control_message.unwrap();
 
-        for file in receiver {
-          let components = get_components(&file.0);
-          tree.insert_file(file);
+              match control_message {
+                EventMessage::DirectoryChange { path, entries } => {
+                  println!("thread got dir change! {:?}", path);
 
-          if !components.starts_with(&current_dir) {
-            // new file is not in current directory
-            continue;
+                  current_dir = path;
+                  subscribed_entries = entries
+                    .iter()
+                    .filter_map(|entry| {
+                      if let Entry::Directory { name } = entry {
+                        Some(name.to_owned())
+                      } else {
+                        None
+                      }
+                    })
+                    .collect();
+                }
+
+                _ => unreachable!("control_message")
+              }
+            },
+
+            recv(file_receiver) -> file => {
+              let file = match file {
+                Ok(ag) => ag,
+                Err(e) => {
+                  break;
+                }
+              };
+
+              let components = get_components(&file.0);
+              tree.insert_file(file);
+
+              if !components.starts_with(&current_dir) {
+                // new file is not in current directory
+                continue;
+              }
+
+              let relative_name = components[current_dir.len()].clone();
+              if !subscribed_entries.contains(&relative_name) {
+                continue;
+              }
+
+              let mut bap = current_dir.clone();
+              bap.push(relative_name.clone());
+
+              let size = tree.at(bap).unwrap().get_total_size();
+
+              addr.do_send(TextMessage(
+                serde_json::to_string(&EventMessage::SizeUpdate {
+                  name: relative_name,
+                  size,
+                })
+                .unwrap(),
+              ));
+            },
           }
+        }
 
-          // current: ["web_server"]
-          // new    : ["web_server", "mod.rs"]
-          if (components.len() - 1) <= current_dir.len() {
-            // skip file updates in current dir
-            continue;
+
+        for control_message in thread_receiver {
+          match control_message {
+            EventMessage::DirectoryChange {
+              ref path,
+              ref entries,
+            } => {
+              println!("thread got dir change (after live update)! {:?}", path);
+
+
+              for entry in entries {
+                if let Entry::Directory { name } = entry {
+                  let mut bap = path.clone();
+                  bap.push(name.clone());
+
+                  let size = tree.at(bap).unwrap().get_total_size();
+
+                  addr.do_send(TextMessage(
+                    serde_json::to_string(&EventMessage::SizeUpdate {
+                      name: name.clone(),
+                      size,
+                    })
+                    .unwrap(),
+                  ));
+                }
+              }
+            }
+
+            _ => unreachable!("control_message"),
           }
-
-          let relative_name = components[current_dir.len()].clone();
-          let mut bap = current_dir.clone();
-          bap.push(relative_name.clone());
-
-          let size = tree.at(bap).unwrap().get_total_size();
-
-          addr.do_send(TextMessage(
-            serde_json::to_string(&EventMessage::SizeUpdate {
-              name: relative_name,
-              size,
-            })
-            .unwrap(),
-          ));
         }
       })
     };
