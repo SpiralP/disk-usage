@@ -121,8 +121,6 @@ impl Actor for WebSocketActor {
                   current_dir = a;
                   subscribed_entries = b;
                 }
-
-                _ => unreachable!("control_message")
               }
             },
 
@@ -173,8 +171,6 @@ impl Actor for WebSocketActor {
 
               send_directory_change(&root_path, path, &tree, &addr);
             }
-
-            _ => unreachable!("control_message"),
           }
         }
       })
