@@ -14,13 +14,27 @@ export default class FolderViewWorker extends React.Component<
   render() {
     const { entries } = this.props;
 
+    const sortedEntries = entries.slice(0).sort((left, right) => {
+      if (left.type === "directory" && right.type === "file") return -1;
+      if (left.type === "file" && right.type === "directory") return 1;
+      return left.name < right.name ? -1 : 1;
+    });
+
     return (
       <>
-        {entries.map((entry) => {
+        {sortedEntries.map((entry) => {
           if (entry.type === "file") {
-            return <h3>{entry.name}</h3>;
+            return (
+              <h3 key={entry.name}>
+                {entry.name}:{entry.size}
+              </h3>
+            );
           } else if (entry.type === "directory") {
-            return <h2>{entry.name}</h2>;
+            return (
+              <h2 key={entry.name}>
+                {entry.name}:{entry.size}
+              </h2>
+            );
           }
         })}
       </>

@@ -7,7 +7,7 @@ interface FileSizeWorkerProps {
 }
 
 interface FileSizeWorkerState {
-  totalSize: number;
+  path: Array<String>;
   entries: Array<Entry>;
 }
 
@@ -15,8 +15,7 @@ export default class FileSizeWorker extends React.Component<
   FileSizeWorkerProps,
   FileSizeWorkerState
 > {
-  state = { totalSize: 0, entries: [] };
-  startTime = 0;
+  state: FileSizeWorkerState = { path: [], entries: [] };
 
   componentDidMount() {
     const { emitter } = this.props;
@@ -37,44 +36,38 @@ export default class FileSizeWorker extends React.Component<
   }
 
   receiver = (data: EventMessage) => {
-    console.log(data);
-    // if (data.t === "start") {
-    //   this.startTime = Date.now();
-    // } else if (data.t === "finish") {
-    //   console.log(Date.now() - this.startTime);
-    // } else if (data.t === "chunk") {
-    //   const files = data.c;
-    //   let chunkSize = 0;
-    //   files.forEach(([pathComponents, size]) => {
-    //     chunkSize += size;
-
-    //     let ag = this.tree;
-    //     pathComponents.forEach((component, i) => {
-    //       if (i === pathComponents.length - 1) return;
-
-    //       if (typeof ag[component] === "undefined") {
-    //         ag[component] = {};
-    //       }
-    //       ag = ag[component];
-    //     });
-
-    //     const fileName = pathComponents[pathComponents.length - 1];
-    //     ag[fileName] = size;
-    //   });
-
-    //   console.log(this.tree);
-    //   const totalSize = this.state.totalSize + chunkSize;
-    //   this.setState({ totalSize });
-    // }
+    if (data.type === "directoryChange") {
+      const { path, entries } = data;
+      this.setState({
+        path,
+        entries,
+      });
+    } else if (data.type === "sizeUpdate") {
+      const newEntry = data.entry;
+      this.setState({
+        entries: this.state.entries.map((entry) => {
+          if (entry.name === newEntry.name) {
+            return { ...entry, ...newEntry };
+          } else {
+            return entry;
+          }
+        }),
+      });
+    }
   };
 
   render() {
-    const { totalSize, entries } = this.state;
+    const { entries } = this.state;
 
     return (
       <>
-        <h3>Total size: {totalSize}</h3>
         <FolderView entries={entries} />
+        <h4>
+          Total size:{" "}
+          {entries
+            .map((entry) => entry.size)
+            .reduce((last, current) => last + current, 0)}
+        </h4>
       </>
     );
   }

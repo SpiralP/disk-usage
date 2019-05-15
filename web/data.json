@@ -1,0 +1,39 @@
+[
+  {
+    "type": "directoryChange",
+    "path": [],
+    "entries": [
+      { "type": "file", "name": "logger.rs", "size": 463 },
+      { "type": "file", "name": "main.rs", "size": 267 },
+      { "type": "directory", "name": "web_server", "size": 0 }
+    ]
+  },
+  {
+    "type": "sizeUpdate",
+    "entry": { "type": "directory", "name": "web_server", "size": 961 }
+  },
+  {
+    "type": "sizeUpdate",
+    "entry": { "type": "directory", "name": "web_server", "size": 2327 }
+  },
+  {
+    "type": "sizeUpdate",
+    "entry": { "type": "directory", "name": "web_server", "size": 2601 }
+  },
+  {
+    "type": "sizeUpdate",
+    "entry": { "type": "directory", "name": "web_server", "size": 4387 }
+  },
+  {
+    "type": "sizeUpdate",
+    "entry": { "type": "directory", "name": "web_server", "size": 12103 }
+  },
+  {
+    "type": "sizeUpdate",
+    "entry": { "type": "directory", "name": "web_server", "size": 12369 }
+  },
+  {
+    "type": "sizeUpdate",
+    "entry": { "type": "directory", "name": "web_server", "size": 14783 }
+  }
+]

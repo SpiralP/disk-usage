@@ -154,8 +154,10 @@ impl Actor for WebSocketActor {
 
               addr.do_send(TextMessage(
                 serde_json::to_string(&EventMessage::SizeUpdate {
-                  name: relative_name,
-                  size,
+                  entry: Entry::Directory {
+                    name: relative_name,
+                    size,
+                  }
                 })
                 .unwrap(),
               ));
@@ -291,8 +293,7 @@ enum EventMessage {
   },
 
   SizeUpdate {
-    name: String,
-    size: u64,
+    entry: Entry,
   },
 }
 

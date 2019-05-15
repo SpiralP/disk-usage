@@ -10,7 +10,7 @@ interface EntryDirectory {
   size: number;
 }
 
-type Entry = EntryFile | EntryDirectory;
+declare type Entry = EntryFile | EntryDirectory;
 
 interface EventMessageDirectoryChange {
   type: "directoryChange";
@@ -20,14 +20,16 @@ interface EventMessageDirectoryChange {
 
 interface EventMessageSizeUpdate {
   type: "sizeUpdate";
-  size: number;
+  entry: Entry;
 }
 
-type EventMessage = EventMessageDirectoryChange | EventMessageSizeUpdate;
+declare type EventMessage =
+  | EventMessageDirectoryChange
+  | EventMessageSizeUpdate;
 
 interface ControlMessageChangeDirectory {
   type: "changeDirectory";
   path: Array<string>;
 }
 
-type ControlMessage = ControlMessageChangeDirectory;
+declare type ControlMessage = ControlMessageChangeDirectory;
