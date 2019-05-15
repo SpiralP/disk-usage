@@ -13,6 +13,7 @@ import { bytes } from "./helpers";
 
 interface FolderViewWorkerProps {
   entries: Array<Entry>;
+  onChangeDirectory: (entry: Entry) => void;
 }
 
 interface FolderViewWorkerState {
@@ -24,7 +25,7 @@ const SizeColumnStyle: { textAlign: "right" } = { textAlign: "right" };
 
 @ContextMenuTarget
 class EntryRow extends React.Component<
-  { entry: Entry; onDelete: (entry: Entry) => void },
+  { entry: Entry; onDelete: () => void; onClick: () => void },
   {}
 > {
   public renderContextMenu() {
@@ -33,7 +34,7 @@ class EntryRow extends React.Component<
       <Menu>
         <MenuItem
           onClick={() => {
-            onDelete(entry);
+            onDelete();
           }}
           text="Delete"
         />
@@ -42,10 +43,14 @@ class EntryRow extends React.Component<
   }
 
   render() {
-    const { entry } = this.props;
+    const { entry, onClick } = this.props;
 
     return (
-      <tr>
+      <tr
+        onClick={() => {
+          onClick();
+        }}
+      >
         <td style={NameColumnStyle}>
           <Icon
             iconSize={20}
@@ -70,7 +75,7 @@ export default class FolderViewWorker extends React.Component<
   state: FolderViewWorkerState = {};
 
   render() {
-    const { entries } = this.props;
+    const { entries, onChangeDirectory } = this.props;
     const { deleteEntry } = this.state;
 
     // sort by size
@@ -92,7 +97,7 @@ export default class FolderViewWorker extends React.Component<
     return (
       <div style={{ paddingBottom: "16px" }}>
         <Alert
-          isOpen={deleteEntry != null}
+          isOpen={deleteEntry ? true : false}
           icon="trash"
           intent={Intent.DANGER}
           cancelButtonText="Cancel"
@@ -131,6 +136,11 @@ export default class FolderViewWorker extends React.Component<
                 entry={entry}
                 onDelete={() => {
                   this.setState({ deleteEntry: entry });
+                }}
+                onClick={() => {
+                  if (entry.type === "directory") {
+                    onChangeDirectory(entry);
+                  }
                 }}
               />
             ))}

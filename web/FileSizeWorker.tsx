@@ -77,7 +77,12 @@ export default class FileSizeWorker extends React.Component<
           />
         </div>
 
-        <FolderView entries={entries} />
+        <FolderView
+          entries={entries}
+          onChangeDirectory={(entry) => {
+            this.send({ type: "changeDirectory", path: [...path, entry.name] });
+          }}
+        />
 
         <div style={{ display: "flex" }}>
           <Text>{`${entries.length} items`}</Text>
