@@ -94,21 +94,19 @@ export default class App extends React.Component<{}, AppState> {
 
     return (
       <div>
-        <h1>Hello, world!</h1>
-
-        <h2>
-          {state.state === "connecting"
-            ? "connecting"
-            : state.state === "error"
-            ? `error: ${state.error}`
-            : state.state === "closed"
-            ? "closed"
-            : null}
-        </h2>
-
         {state.state === "connected" ? (
           <FileSizeWorker emitter={state.emitter} />
-        ) : null}
+        ) : (
+          <h2>
+            {state.state === "connecting"
+              ? "connecting"
+              : state.state === "error"
+              ? `error: ${state.error}`
+              : state.state === "closed"
+              ? "closed"
+              : null}
+          </h2>
+        )}
       </div>
     );
   }

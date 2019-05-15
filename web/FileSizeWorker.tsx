@@ -65,15 +65,17 @@ export default class FileSizeWorker extends React.Component<
 
     return (
       <div>
-        <Breadcrumbs
-          items={[".", ...path].map((name, i) => ({
-            text: name,
-            icon: "folder-close",
-            onClick: () => {
-              this.send({ type: "changeDirectory", path: path.slice(0, i) });
-            },
-          }))}
-        />
+        <div style={{ paddingLeft: "16px" }}>
+          <Breadcrumbs
+            items={[".", ...path].map((name, i) => ({
+              text: name,
+              icon: "folder-close",
+              onClick: () => {
+                this.send({ type: "changeDirectory", path: path.slice(0, i) });
+              },
+            }))}
+          />
+        </div>
 
         <FolderView entries={entries} />
 

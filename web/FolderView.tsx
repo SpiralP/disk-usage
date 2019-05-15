@@ -28,7 +28,7 @@ export default class FolderViewWorker extends React.Component<
     });
 
     return (
-      <div>
+      <div style={{ paddingBottom: "16px" }}>
         <HTMLTable
           bordered
           condensed
@@ -67,19 +67,3 @@ export default class FolderViewWorker extends React.Component<
     );
   }
 }
-
-// {sortedEntries.map((entry) => {
-//   if (entry.type === "file") {
-//     return (
-//       <h3 key={entry.name}>
-//         {entry.name}:{entry.size}
-//       </h3>
-//     );
-//   } else if (entry.type === "directory") {
-//     return (
-//       <h2 key={entry.name}>
-//         {entry.name}:{entry.size}
-//       </h2>
-//     );
-//   }
-// })}
