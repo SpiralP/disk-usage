@@ -15,25 +15,25 @@ interface FolderViewWorkerProps {
   entries: Array<Entry>;
 }
 
-interface FolderViewWorkerState {}
+interface FolderViewWorkerState {
+  deleteEntry?: Entry;
+}
 
 const NameColumnStyle = { width: "100%" };
 const SizeColumnStyle: { textAlign: "right" } = { textAlign: "right" };
 
 @ContextMenuTarget
 class EntryRow extends React.Component<
-  { entry: Entry },
-  { isDelete: boolean }
+  { entry: Entry; onDelete: (entry: Entry) => void },
+  {}
 > {
-  state: { isDelete: boolean } = { isDelete: false };
-
   public renderContextMenu() {
-    const { entry } = this.props;
+    const { entry, onDelete } = this.props;
     return (
       <Menu>
         <MenuItem
           onClick={() => {
-            this.setState({ isDelete: true });
+            onDelete(entry);
           }}
           text="Delete"
         />
@@ -42,30 +42,10 @@ class EntryRow extends React.Component<
   }
 
   render() {
-    const { isDelete } = this.state;
     const { entry } = this.props;
 
     return (
       <tr>
-        <Alert
-          isOpen={isDelete}
-          icon="trash"
-          intent={Intent.DANGER}
-          cancelButtonText="Cancel"
-          confirmButtonText="Delete Forever"
-          onConfirm={() => {
-            console.warn("TODO delete", entry);
-            this.setState({ isDelete: false });
-          }}
-          onCancel={() => {
-            this.setState({ isDelete: false });
-          }}
-        >
-          <p>
-            Are you sure you want to delete <b>{entry.name}</b> forever?
-          </p>
-        </Alert>
-
         <td style={NameColumnStyle}>
           <Icon
             iconSize={20}
@@ -87,19 +67,50 @@ export default class FolderViewWorker extends React.Component<
   FolderViewWorkerProps,
   FolderViewWorkerState
 > {
+  state: FolderViewWorkerState = {};
+
   render() {
     const { entries } = this.props;
+    const { deleteEntry } = this.state;
 
     // sort by size
     const sortedEntries = entries.slice(0).sort((left, right) => {
       const a = left.size;
       const b = right.size;
 
-      return a > b ? -1 : a === b ? 0 : 1;
+      // greater first
+      if (a > b) return -1;
+      if (a < b) return 1;
+
+      // a-z
+      if (left.name < right.name) return -1;
+      if (left.name > right.name) return 1;
+
+      return 0;
     });
 
     return (
       <div style={{ paddingBottom: "16px" }}>
+        <Alert
+          isOpen={deleteEntry != null}
+          icon="trash"
+          intent={Intent.DANGER}
+          cancelButtonText="Cancel"
+          confirmButtonText="Delete Forever"
+          onConfirm={() => {
+            console.warn("TODO delete", deleteEntry);
+            this.setState({ deleteEntry: undefined });
+          }}
+          onCancel={() => {
+            this.setState({ deleteEntry: undefined });
+          }}
+        >
+          <p>
+            Are you sure you want to delete{" "}
+            <b>{deleteEntry ? deleteEntry.name : "<unknown>"}</b> forever?
+          </p>
+        </Alert>
+
         <HTMLTable
           bordered
           condensed
@@ -115,7 +126,13 @@ export default class FolderViewWorker extends React.Component<
           </thead>
           <tbody>
             {sortedEntries.map((entry, i) => (
-              <EntryRow key={i} entry={entry} />
+              <EntryRow
+                key={i}
+                entry={entry}
+                onDelete={() => {
+                  this.setState({ deleteEntry: entry });
+                }}
+              />
             ))}
           </tbody>
         </HTMLTable>
