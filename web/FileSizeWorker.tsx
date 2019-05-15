@@ -1,13 +1,15 @@
 import React from "react";
 import EventEmitter from "events";
 import FolderView from "./FolderView";
+import { Breadcrumbs, Divider, Text } from "@blueprintjs/core";
+import { bytes } from "./helpers";
 
 interface FileSizeWorkerProps {
   emitter: EventEmitter;
 }
 
 interface FileSizeWorkerState {
-  path: Array<String>;
+  path: Array<string>;
   entries: Array<Entry>;
 }
 
@@ -59,18 +61,34 @@ export default class FileSizeWorker extends React.Component<
   };
 
   render() {
-    const { entries } = this.state;
+    const { path, entries } = this.state;
 
     return (
-      <>
+      <div>
+        <Breadcrumbs
+          items={[".", ...path].map((name, i) => ({
+            text: name,
+            icon: "folder-close",
+            onClick: () => {
+              this.send({ type: "changeDirectory", path: path.slice(0, i) });
+            },
+          }))}
+        />
+
         <FolderView entries={entries} />
-        <h4>
-          Total size:{" "}
-          {entries
-            .map((entry) => entry.size)
-            .reduce((last, current) => last + current, 0)}
-        </h4>
-      </>
+
+        <div style={{ display: "flex" }}>
+          <Text>{`${entries.length} items`}</Text>
+          <Divider />
+          <Text>
+            {`Total size: ${bytes(
+              entries
+                .map((entry) => entry.size)
+                .reduce((last, current) => last + current, 0)
+            )}`}
+          </Text>
+        </div>
+      </div>
     );
   }
 }

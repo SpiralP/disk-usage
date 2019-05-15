@@ -1,7 +1,7 @@
 [
   {
     "type": "directoryChange",
-    "path": [],
+    "path": ["hi", "there", "you"],
     "entries": [
       { "type": "file", "name": "logger.rs", "size": 463 },
       { "type": "file", "name": "main.rs", "size": 267 },
