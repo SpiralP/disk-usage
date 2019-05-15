@@ -48,6 +48,7 @@ class EntryRow extends React.Component<
     return (
       <tr>
         <Alert
+          isOpen={isDelete}
           icon="trash"
           intent={Intent.DANGER}
           cancelButtonText="Cancel"
@@ -59,12 +60,12 @@ class EntryRow extends React.Component<
           onCancel={() => {
             this.setState({ isDelete: false });
           }}
-          isOpen={isDelete}
         >
           <p>
             Are you sure you want to delete <b>{entry.name}</b> forever?
           </p>
         </Alert>
+
         <td style={NameColumnStyle}>
           <Icon
             iconSize={20}
