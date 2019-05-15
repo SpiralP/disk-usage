@@ -111,6 +111,6 @@ fn test_tree() {
 pub fn get_components(path: &PathBuf) -> Vec<String> {
   path
     .iter()
-    .map(|os_str| os_str.to_string_lossy().to_string())
+    .map(move |os_str| os_str.to_string_lossy().to_string())
     .collect()
 }

@@ -7,7 +7,7 @@ use std::sync::Once;
 pub fn initialize_logger(debug: bool) {
   static START: Once = Once::new();
 
-  START.call_once(|| {
+  START.call_once(move || {
     let level = if debug {
       log::LevelFilter::Debug
     } else {

@@ -59,7 +59,7 @@ fn send_directory_change(
     path,
     entries
       .iter()
-      .filter_map(|entry| {
+      .filter_map(move |entry| {
         if let Entry::Directory { name, .. } = entry {
           Some(name.to_owned())
         } else {
