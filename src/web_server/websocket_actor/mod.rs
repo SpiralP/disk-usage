@@ -30,7 +30,7 @@ impl WebSocketActor {
     }
   }
 
-  fn change_dir(&mut self, path: Vec<String>, ctx: &mut ws::WebsocketContext<Self>) {
+  fn change_dir(&mut self, path: Vec<String>) {
     self.current_dir = path.clone();
 
     self
@@ -43,7 +43,7 @@ impl WebSocketActor {
 }
 
 fn send_directory_change(
-  root_path: &Vec<String>,
+  root_path: &[String],
   path: Vec<String>,
   tree: &Tree,
   addr: &Addr<WebSocketActor>,
@@ -62,7 +62,7 @@ fn send_directory_change(
     entries
       .iter()
       .filter_map(|entry| {
-        if let Entry::Directory { name, size } = entry {
+        if let Entry::Directory { name, .. } = entry {
           Some(name.to_owned())
         } else {
           None
@@ -87,7 +87,7 @@ impl Actor for WebSocketActor {
     self.thread_sender = Some(thread_sender);
 
     // send initial current directory entries
-    self.change_dir(Vec::new(), ctx);
+    self.change_dir(Vec::new());
 
 
     let _thread = {
@@ -129,7 +129,7 @@ impl Actor for WebSocketActor {
             recv(file_receiver) -> file => {
               let file = match file {
                 Ok(send_directory_change) => send_directory_change,
-                Err(e) => {
+                Err(_) => {
                   break;
                 }
               };
@@ -171,7 +171,7 @@ impl Actor for WebSocketActor {
             ThreadControlMessage::ChangeDirectory(path) => {
               println!("thread got dir change (after live update)! {:?}", path);
 
-              let (path, entries) = send_directory_change(&root_path, path, &tree, &addr);
+              send_directory_change(&root_path, path, &tree, &addr);
             }
 
             _ => unreachable!("control_message"),
@@ -268,7 +268,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WebSocketActor {
 
         match control_message {
           ControlMessage::ChangeDirectory { path } => {
-            self.change_dir(path, ctx);
+            self.change_dir(path);
           }
         }
       }

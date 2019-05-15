@@ -37,10 +37,12 @@ impl Tree {
     Some(current)
   }
 
+  #[allow(dead_code)]
   pub fn at_path(&self, path: PathBuf) -> Option<&Tree> {
     self.at(get_components(&path))
   }
 
+  #[allow(dead_code)]
   pub fn at_mut(&mut self, components: Vec<String>) -> Option<&mut Tree> {
     let mut current = self;
     for component in components {

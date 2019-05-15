@@ -10,11 +10,7 @@ pub enum Entry {
   Directory { name: String, size: u64 },
 }
 
-pub fn get_directory_entries(
-  root_path: &Vec<String>,
-  path: Vec<String>,
-  tree: &Tree,
-) -> Vec<Entry> {
+pub fn get_directory_entries(root_path: &[String], path: Vec<String>, tree: &Tree) -> Vec<Entry> {
   // root_path: ["src"]
   // path: ["web_server", "websocket_actor"]
 
@@ -36,11 +32,9 @@ pub fn get_directory_entries(
         let relative_path =
           get_components(&path.strip_prefix(root_path.clone()).unwrap().to_path_buf());
 
-        println!("{:#?}", relative_path);
-
         let size = tree
           .at(relative_path)
-          .map(|sub_tree| sub_tree.get_total_size())
+          .map(Tree::get_total_size)
           .unwrap_or(0);
         Entry::Directory { name, size }
       } else {
