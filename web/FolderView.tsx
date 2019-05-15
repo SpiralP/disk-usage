@@ -1,6 +1,14 @@
 import React from "react";
 import EventEmitter from "events";
-import { HTMLTable, Icon } from "@blueprintjs/core";
+import {
+  HTMLTable,
+  Icon,
+  ContextMenuTarget,
+  Menu,
+  Intent,
+  Alert,
+  MenuItem,
+} from "@blueprintjs/core";
 import { bytes } from "./helpers";
 
 interface FolderViewWorkerProps {
@@ -11,6 +19,68 @@ interface FolderViewWorkerState {}
 
 const NameColumnStyle = { width: "100%" };
 const SizeColumnStyle: { textAlign: "right" } = { textAlign: "right" };
+
+@ContextMenuTarget
+class EntryRow extends React.Component<
+  { entry: Entry },
+  { isDelete: boolean }
+> {
+  state: { isDelete: boolean } = { isDelete: false };
+
+  public renderContextMenu() {
+    const { entry } = this.props;
+    return (
+      <Menu>
+        <MenuItem
+          onClick={() => {
+            this.setState({ isDelete: true });
+          }}
+          text="Delete"
+        />
+      </Menu>
+    );
+  }
+
+  render() {
+    const { isDelete } = this.state;
+    const { entry } = this.props;
+
+    return (
+      <tr>
+        <Alert
+          icon="trash"
+          intent={Intent.DANGER}
+          cancelButtonText="Cancel"
+          confirmButtonText="Delete Forever"
+          onConfirm={() => {
+            console.warn("TODO delete", entry);
+            this.setState({ isDelete: false });
+          }}
+          onCancel={() => {
+            this.setState({ isDelete: false });
+          }}
+          isOpen={isDelete}
+        >
+          <p>
+            Are you sure you want to delete <b>{entry.name}</b> forever?
+          </p>
+        </Alert>
+        <td style={NameColumnStyle}>
+          <Icon
+            iconSize={20}
+            intent="primary"
+            icon={entry.type === "directory" ? "folder-close" : "document"}
+            style={{ paddingRight: "10px" }}
+          />
+          {entry.name}
+        </td>
+        <td style={SizeColumnStyle} title={`${entry.size} bytes`}>
+          {bytes(entry.size)}
+        </td>
+      </tr>
+    );
+  }
+}
 
 export default class FolderViewWorker extends React.Component<
   FolderViewWorkerProps,
@@ -44,22 +114,7 @@ export default class FolderViewWorker extends React.Component<
           </thead>
           <tbody>
             {sortedEntries.map((entry, i) => (
-              <tr key={i}>
-                <td style={NameColumnStyle}>
-                  <Icon
-                    iconSize={20}
-                    intent="primary"
-                    icon={
-                      entry.type === "directory" ? "folder-close" : "document"
-                    }
-                    style={{ paddingRight: "10px" }}
-                  />
-                  {entry.name}
-                </td>
-                <td style={SizeColumnStyle} title={`${entry.size} bytes`}>
-                  {bytes(entry.size)}
-                </td>
-              </tr>
+              <EntryRow key={i} entry={entry} />
             ))}
           </tbody>
         </HTMLTable>
