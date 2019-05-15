@@ -202,12 +202,7 @@ fn start_event_sender_thread(
               });
             }
 
-            sums
-              .entry(name)
-              .and_modify(move |old_size| {
-                *old_size += size;
-              })
-              .or_insert_with(move || size);
+            sums.insert(name, size);
 
             continue;
           }
