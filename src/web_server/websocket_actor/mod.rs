@@ -9,7 +9,14 @@ use crossbeam::channel::{self, Receiver, Sender};
 use log::*;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use std::{path::PathBuf, thread};
+use std::{
+  collections::HashMap,
+  path::PathBuf,
+  sync::{Arc, Mutex},
+  thread,
+};
+use time::Duration;
+use timer::*;
 
 pub struct WebSocketActor {
   root_path: Vec<String>,
@@ -72,18 +79,6 @@ impl Actor for WebSocketActor {
   }
 }
 
-fn start_event_sender_thread(
-  addr: Addr<WebSocketActor>,
-  event_receiver: Receiver<EventMessage>,
-) -> thread::JoinHandle<()> {
-  thread::spawn(move || {
-    for event in event_receiver {
-      addr.do_send(TextMessage(serde_json::to_string(&event).unwrap()));
-    }
-  })
-}
-
-
 impl Handler<TextMessage> for WebSocketActor {
   type Result = ();
 
@@ -143,4 +138,85 @@ pub enum EventMessage {
 #[serde(tag = "type")]
 enum ControlMessage {
   ChangeDirectory { path: Vec<String> },
+}
+
+
+fn start_event_sender_thread(
+  addr: Addr<WebSocketActor>,
+  event_receiver: Receiver<EventMessage>,
+) -> thread::JoinHandle<()> {
+  thread::Builder::new()
+    .name("event_sender".to_string())
+    .spawn(move || {
+      let sums_mutex: Arc<Mutex<HashMap<String, u64>>> = Arc::new(Mutex::new(HashMap::new()));
+      let timers_mutex: Arc<Mutex<HashMap<String, Guard>>> = Arc::new(Mutex::new(HashMap::new()));
+      // TODO combine these into (sum, guard)
+
+      let timer = Timer::new();
+
+      for event in event_receiver {
+
+        let mut sums = sums_mutex.lock().unwrap();
+        let mut timers = timers_mutex.lock().unwrap();
+
+        match &event {
+          EventMessage::DirectoryChange { .. } => {
+            // clear maps
+            sums.clear();
+            timers.clear();
+          }
+
+          EventMessage::SizeUpdate { entry } => {
+            // push to sums, timer somehow
+            let (name, size) = match entry {
+              Entry::Directory { name, size } => (name.clone(), *size),
+              Entry::File { name, size } => (name.clone(), *size),
+            };
+
+            if !sums.contains_key(&name) {
+              timers.insert(name.clone(), {
+                let name = name.clone();
+                let timers_mutex = timers_mutex.clone();
+                let sums_mutex = sums_mutex.clone();
+                let addr = addr.clone();
+
+                timer.schedule_with_delay(Duration::milliseconds(1000), move || {
+                  {
+                    let mut timers = timers_mutex.lock().unwrap();
+                    timers.remove(&name);
+                  }
+
+                  let mut sums = sums_mutex.lock().unwrap();
+                  let size = sums.remove(&name).unwrap();
+
+                  addr.do_send(TextMessage(
+                    serde_json::to_string(&EventMessage::SizeUpdate {
+                      entry: Entry::Directory {
+                        name: name.clone(),
+                        size,
+                      },
+                    })
+                    .unwrap(),
+                  ));
+                })
+              });
+            }
+
+            sums
+              .entry(name)
+              .and_modify(move |old_size| {
+                *old_size += size;
+              })
+              .or_insert_with(move || size);
+
+            continue;
+          }
+        }
+
+
+        addr.do_send(TextMessage(serde_json::to_string(&event).unwrap()));
+      }
+
+    })
+    .unwrap()
 }

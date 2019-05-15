@@ -36,6 +36,8 @@ export default class FileSizeWorker extends React.Component<
   }
 
   receiver = (data: EventMessage) => {
+    console.log(data);
+
     if (data.type === "directoryChange") {
       const { path, entries } = data;
       this.setState({

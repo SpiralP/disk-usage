@@ -5,6 +5,7 @@ pub use self::{dir::*, tree::*};
 use super::EventMessage;
 use crossbeam::channel::{select, Receiver, Sender};
 use directory_size::*;
+use log::*;
 use std::thread;
 
 fn send_directory_change(
@@ -46,79 +47,85 @@ pub fn start_scanner_thread(
   thread_control_receiver: Receiver<ThreadControlMessage>,
   event_sender: Sender<EventMessage>,
 ) -> thread::JoinHandle<()> {
-  thread::spawn(move || {
-    let (_scanner, file_receiver) = FileSizeScanner::start(root_path.iter().collect());
+  thread::Builder::new()
+    .name("scanner".to_string())
+    .spawn(move || {
+      let (_scanner, file_receiver) = FileSizeScanner::start(root_path.iter().collect());
 
-    let mut tree = Tree::new();
+      let mut tree = Tree::new();
 
-    // wait for default current directory
-    let (mut current_dir, mut subscribed_entries): (Vec<String>, Vec<String>) =
-      match thread_control_receiver.recv().unwrap() {
-        ThreadControlMessage::ChangeDirectory(path) => {
-          send_directory_change(&root_path, path, &tree, &event_sender)
-        }
-      };
-
-    loop {
-      select! {
-        recv(thread_control_receiver) -> control_message => {
-          let control_message = control_message.unwrap();
-
-          match control_message {
-            ThreadControlMessage::ChangeDirectory(path) => {
-              println!("thread got dir change! {:?}", path);
-
-              let (a, b) = send_directory_change(&root_path, path, &tree, &event_sender);
-              current_dir = a;
-              subscribed_entries = b;
-            }
+      // wait for default current directory
+      let (mut current_dir, mut subscribed_entries): (Vec<String>, Vec<String>) =
+        match thread_control_receiver.recv().unwrap() {
+          ThreadControlMessage::ChangeDirectory(path) => {
+            send_directory_change(&root_path, path, &tree, &event_sender)
           }
-        },
+        };
 
-        recv(file_receiver) -> file => {
-          let file = match file {
-            Ok(send_directory_change) => send_directory_change,
-            Err(_) => {
-              break;
+      loop {
+        select! {
+          recv(thread_control_receiver) -> control_message => {
+            let control_message = control_message.unwrap();
+
+            match control_message {
+              ThreadControlMessage::ChangeDirectory(path) => {
+                println!("thread got dir change! {:?}", path);
+
+                let (a, b) = send_directory_change(&root_path, path, &tree, &event_sender);
+                current_dir = a;
+                subscribed_entries = b;
+              }
             }
-          };
+          },
 
-          let components = get_components(&file.0);
-          tree.insert_file(file);
+          recv(file_receiver) -> file => {
+            let file = match file {
+              Ok(send_directory_change) => send_directory_change,
+              Err(_) => {
+                break;
+              }
+            };
 
-          if !components.starts_with(&current_dir) {
-            // new file is not in current directory
-            continue;
-          }
+            let components = get_components(&file.0);
+            tree.insert_file(file);
 
-          let relative_name = components[current_dir.len()].clone();
-          if !subscribed_entries.contains(&relative_name) {
-            continue;
-          }
-
-
-          let mut bap = current_dir.clone();
-          bap.push(relative_name.clone());
-          let size = tree.at(bap).unwrap().get_total_size();
-
-          event_sender.send(EventMessage::SizeUpdate {
-            entry: Entry::Directory {
-              name: relative_name,
-              size,
+            if !components.starts_with(&current_dir) {
+              // new file is not in current directory
+              continue;
             }
-          }).unwrap();
-        },
-      }
-    }
 
-    for control_message in thread_control_receiver {
-      match control_message {
-        ThreadControlMessage::ChangeDirectory(path) => {
-          println!("thread got dir change (after live update)! {:?}", path);
+            let relative_name = components[current_dir.len()].clone();
+            if !subscribed_entries.contains(&relative_name) {
+              continue;
+            }
 
-          send_directory_change(&root_path, path, &tree, &event_sender);
+
+            let mut bap = current_dir.clone();
+            bap.push(relative_name.clone());
+            let size = tree.at(bap).expect("tree.at").get_total_size();
+
+            event_sender.send(EventMessage::SizeUpdate {
+              entry: Entry::Directory {
+                name: relative_name,
+                size,
+              }
+            }).expect("event_sender.send");
+          },
         }
       }
-    }
-  })
+
+      info!("scanner done!");
+
+
+      for control_message in thread_control_receiver {
+        match control_message {
+          ThreadControlMessage::ChangeDirectory(path) => {
+            println!("thread got dir change (after live update)! {:?}", path);
+
+            send_directory_change(&root_path, path, &tree, &event_sender);
+          }
+        }
+      }
+    })
+    .unwrap()
 }
