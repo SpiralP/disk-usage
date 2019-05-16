@@ -141,6 +141,8 @@ enum ControlMessage {
 }
 
 
+const UPDATE_INTERVAL: i64 = 1000;
+
 fn start_event_sender_thread(
   addr: Addr<WebSocketActor>,
   event_receiver: Receiver<EventMessage>,
@@ -148,22 +150,19 @@ fn start_event_sender_thread(
   thread::Builder::new()
     .name("event_sender".to_string())
     .spawn(move || {
-      let sums_mutex: Arc<Mutex<HashMap<String, u64>>> = Arc::new(Mutex::new(HashMap::new()));
-      let timers_mutex: Arc<Mutex<HashMap<String, Guard>>> = Arc::new(Mutex::new(HashMap::new()));
-      // TODO combine these into (sum, guard)
+      let sums_mutex: Arc<Mutex<HashMap<String, (u64, Guard)>>> =
+        Arc::new(Mutex::new(HashMap::new()));
 
+      let sums_mutex2 = sums_mutex.clone();
       let timer = Timer::new();
 
       for event in event_receiver {
-
         let mut sums = sums_mutex.lock().unwrap();
-        let mut timers = timers_mutex.lock().unwrap();
 
         match &event {
           EventMessage::DirectoryChange { .. } => {
             // clear maps
             sums.clear();
-            timers.clear();
           }
 
           EventMessage::SizeUpdate { entry } => {
@@ -173,36 +172,33 @@ fn start_event_sender_thread(
               Entry::File { name, size } => (name.clone(), *size),
             };
 
-            if !sums.contains_key(&name) {
-              timers.insert(name.clone(), {
-                let name = name.clone();
-                let timers_mutex = timers_mutex.clone();
-                let sums_mutex = sums_mutex.clone();
-                let addr = addr.clone();
+            let sums_mutex = sums_mutex2.clone();
+            let addr = addr.clone();
 
-                timer.schedule_with_delay(Duration::milliseconds(1000), move || {
-                  {
-                    let mut timers = timers_mutex.lock().unwrap();
-                    timers.remove(&name);
-                  }
+            sums
+              .entry(name.clone())
+              .and_modify(|(old_size, _guard)| {
+                *old_size = size;
+              })
+              .or_insert_with(|| {
+                (
+                  size,
+                  timer.schedule_with_delay(Duration::milliseconds(UPDATE_INTERVAL), move || {
+                    let mut sums = sums_mutex.lock().unwrap();
+                    let (size, _guard) = sums.remove(&name).unwrap();
 
-                  let mut sums = sums_mutex.lock().unwrap();
-                  let size = sums.remove(&name).unwrap();
-
-                  addr.do_send(TextMessage(
-                    serde_json::to_string(&EventMessage::SizeUpdate {
-                      entry: Entry::Directory {
-                        name: name.clone(),
-                        size,
-                      },
-                    })
-                    .unwrap(),
-                  ));
-                })
+                    addr.do_send(TextMessage(
+                      serde_json::to_string(&EventMessage::SizeUpdate {
+                        entry: Entry::Directory {
+                          name: name.clone(),
+                          size,
+                        },
+                      })
+                      .unwrap(),
+                    ));
+                  }),
+                )
               });
-            }
-
-            sums.insert(name, size);
 
             continue;
           }
