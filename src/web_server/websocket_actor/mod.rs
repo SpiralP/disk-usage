@@ -141,7 +141,7 @@ enum ControlMessage {
 }
 
 
-const UPDATE_INTERVAL: i64 = 1000;
+const UPDATE_INTERVAL: i64 = 500;
 
 fn start_event_sender_thread(
   addr: Addr<WebSocketActor>,

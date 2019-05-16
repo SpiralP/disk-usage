@@ -63,6 +63,10 @@ export default class FileSizeWorker extends React.Component<
   render() {
     const { path, entries } = this.state;
 
+    const totalSize = entries
+      .map((entry) => entry.size)
+      .reduce((last, current) => last + current, 0);
+
     return (
       <div>
         <div style={{ paddingLeft: "16px" }}>
@@ -85,15 +89,11 @@ export default class FileSizeWorker extends React.Component<
         />
 
         <div style={{ display: "flex" }}>
-          <Text>{`${entries.length} items`}</Text>
+          <h4>{`${entries.length} items`}</h4>
           <Divider />
-          <Text>
-            {`Total size: ${bytes(
-              entries
-                .map((entry) => entry.size)
-                .reduce((last, current) => last + current, 0)
-            )}`}
-          </Text>
+          <h4 title={`${totalSize.toLocaleString()} bytes`}>
+            {`Total size: ${bytes(totalSize)}`}
+          </h4>
         </div>
       </div>
     );

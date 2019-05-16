@@ -74,6 +74,8 @@ export default class App extends React.Component<{}, AppState> {
       .then((ee) => {
         ee.on("close", () => {
           this.setState({ state: "closed" });
+
+          window.close();
         });
 
         ee.on("error", (err) => {

@@ -23,9 +23,53 @@ interface FolderViewWorkerState {
 const NameColumnStyle = { width: "100%" };
 const SizeColumnStyle: { textAlign: "right" } = { textAlign: "right" };
 
+class ProgressBar extends React.Component<
+  {
+    value: number;
+  },
+  {}
+> {
+  render() {
+    const { value, children } = this.props;
+
+    return (
+      <div
+        style={{
+          position: "relative",
+        }}
+      >
+        <div
+          style={{
+            zIndex: 9,
+            position: "relative",
+          }}
+        >
+          {children}
+        </div>
+        <div
+          style={{
+            backgroundColor: "#137CBD1a",
+            zIndex: 1,
+            position: "absolute",
+            width: `${value * 100}%`,
+            height: "32px",
+            top: "-6px",
+            left: "-10px",
+          }}
+        />
+      </div>
+    );
+  }
+}
+
 @ContextMenuTarget
 class EntryRow extends React.Component<
-  { entry: Entry; onDelete: () => void; onClick: () => void },
+  {
+    entry: Entry;
+    onDelete: () => void;
+    onClick: () => void;
+    totalSize: number;
+  },
   {}
 > {
   public renderContextMenu() {
@@ -42,8 +86,11 @@ class EntryRow extends React.Component<
     );
   }
 
+  // <div>
+  //           {/* <ProgressBar value={0.6} intent="primary" stripes animate /> */}
+  //         </div>
   render() {
-    const { entry, onClick } = this.props;
+    const { entry, onClick, totalSize } = this.props;
 
     return (
       <tr
@@ -52,15 +99,20 @@ class EntryRow extends React.Component<
         }}
       >
         <td style={NameColumnStyle}>
-          <Icon
-            iconSize={20}
-            intent="primary"
-            icon={entry.type === "directory" ? "folder-close" : "document"}
-            style={{ paddingRight: "10px" }}
-          />
-          {entry.name}
+          <ProgressBar value={entry.size / totalSize}>
+            <Icon
+              iconSize={20}
+              intent="primary"
+              icon={entry.type === "directory" ? "folder-close" : "document"}
+              style={{ paddingRight: "10px" }}
+            />
+            {entry.name}
+          </ProgressBar>
         </td>
-        <td style={SizeColumnStyle} title={`${entry.size} bytes`}>
+        <td
+          style={SizeColumnStyle}
+          title={`${entry.size.toLocaleString()} bytes`}
+        >
           {bytes(entry.size)}
         </td>
       </tr>
@@ -86,6 +138,10 @@ export default class FolderViewWorker extends React.Component<
       // greater first
       if (a > b) return -1;
       if (a < b) return 1;
+
+      // show directories first
+      if (left.type === "directory" && right.type === "file") return -1;
+      if (left.type === "file" && right.type === "directory") return 1;
 
       // a-z
       if (left.name < right.name) return -1;
@@ -142,6 +198,9 @@ export default class FolderViewWorker extends React.Component<
                     onChangeDirectory(entry);
                   }
                 }}
+                totalSize={entries
+                  .map((entry) => entry.size)
+                  .reduce((last, current) => last + current, 0)}
               />
             ))}
           </tbody>
