@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, path::Path};
 
 // TODO make get_total_size cache!
 // maybe entries_mut sets dirty flag? then all entries_mut will have to be recomputed
@@ -20,10 +20,10 @@ impl Directory {
     }
   }
 
-  pub fn at_mut(&mut self, components: Vec<String>) -> Option<&mut Self> {
+  pub fn at_mut(&mut self, components: &[String]) -> Option<&mut Self> {
     let mut current = self;
     for component in components {
-      current = current.entries.get_mut(&component)?;
+      current = current.entries.get_mut(component)?;
     }
 
     Some(current)
@@ -53,7 +53,7 @@ fn test_tree() {
   let mut t = Directory::new();
 
   for FileSize(path, size) in receiver {
-    let components = get_components(&path);
+    let components = get_components(path);
     t.insert_file(&components, size);
   }
 
@@ -63,8 +63,9 @@ fn test_tree() {
   println!("{}", t.total_size);
 }
 
-pub fn get_components(path: &PathBuf) -> Vec<String> {
+pub fn get_components<B: AsRef<Path>>(path: B) -> Vec<String> {
   path
+    .as_ref()
     .iter()
     .map(|os_str| os_str.to_string_lossy().to_string())
     .collect()
