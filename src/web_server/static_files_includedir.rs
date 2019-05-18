@@ -1,4 +1,4 @@
-use actix_web::{get, web, HttpRequest, HttpResponse};
+use actix_web::{get, http::header::ContentType, web, HttpRequest, HttpResponse};
 use includedir;
 
 // impl Handler<S> for StaticFilesIncludedir {
@@ -40,7 +40,19 @@ pub fn static_files_service(req: HttpRequest) -> HttpResponse {
   let data: web::Data<MyData> = req.get_app_data().unwrap();
 
   match data.files.get(&format!("{}{}", data.base_path, file_path)) {
-    Ok(bytes) => HttpResponse::Ok().body(bytes.into_owned()),
+    Ok(bytes) => {
+      let mut builder = HttpResponse::Ok();
+
+      if file_path.ends_with(".css") {
+        builder.set(ContentType("text/css".parse().unwrap()));
+      } else if file_path.ends_with(".js") {
+        builder.set(ContentType("application/javascript".parse().unwrap()));
+      } else if file_path.ends_with(".html") {
+        builder.set(ContentType::html());
+      }
+
+      builder.body(bytes.into_owned())
+    }
     Err(_) => HttpResponse::NotFound().finish(),
   }
 }
