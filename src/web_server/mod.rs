@@ -13,7 +13,7 @@ include!(concat!(env!("OUT_DIR"), "/web_files.rs"));
 
 const LISTEN_ADDR: &str = "127.0.0.1:8080";
 
-pub fn start_web_server(root_path: PathBuf) {
+pub fn start(root_path: PathBuf) {
   open::that(format!("http://{}/", LISTEN_ADDR)).unwrap();
 
   HttpServer::new(move || {

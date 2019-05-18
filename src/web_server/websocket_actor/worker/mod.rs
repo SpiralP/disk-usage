@@ -6,36 +6,36 @@ use super::EventMessage;
 use crossbeam::channel::{Receiver, Sender, TryRecvError};
 use directory_size::*;
 use log::*;
-use std::{thread, time::Instant};
+use std::{collections::HashSet, thread, time::Instant};
 
 fn send_directory_change(
   root_path: &[String],
-  path: Vec<String>,
+  path: &[String],
   tree: &mut Directory,
   event_sender: &Sender<EventMessage>,
-) -> (Vec<String>, Vec<String>) {
-  let entries = get_directory_entries(root_path, path.clone(), tree);
+) -> HashSet<String> {
+  let entries = get_directory_entries(root_path, path, tree);
+
+  let dirs = entries
+    .iter()
+    .filter_map(move |entry| {
+      if let Entry::Directory { name, .. } = entry {
+        Some(name.to_owned())
+      } else {
+        None
+      }
+    })
+    .collect();
+
 
   event_sender
     .send(EventMessage::DirectoryChange {
-      path: path.clone(),
-      entries: entries.clone(),
+      path: path.to_owned(),
+      entries,
     })
     .unwrap();
 
-  (
-    path,
-    entries
-      .iter()
-      .filter_map(move |entry| {
-        if let Entry::Directory { name, .. } = entry {
-          Some(name.to_owned())
-        } else {
-          None
-        }
-      })
-      .collect(),
-  )
+  dirs
 }
 
 pub enum ThreadControlMessage {
@@ -56,12 +56,15 @@ pub fn start_scanner_thread(
       let mut tree = Directory::new();
 
       // wait for default current directory
-      let (mut current_dir, mut subscribed_entries): (Vec<String>, Vec<String>) =
-        match control_receiver.recv().unwrap() {
-          ThreadControlMessage::ChangeDirectory(path) => {
-            send_directory_change(&root_path, path, &mut tree, &event_sender)
-          }
-        };
+      let mut current_dir;
+      let mut subscribed_entries;
+
+      match control_receiver.recv().unwrap() {
+        ThreadControlMessage::ChangeDirectory(path) => {
+          subscribed_entries = send_directory_change(&root_path, &path, &mut tree, &event_sender);
+          current_dir = path;
+        }
+      };
 
       for FileSize(path, size) in file_receiver {
         match control_receiver.try_recv() {
@@ -69,9 +72,9 @@ pub fn start_scanner_thread(
             ThreadControlMessage::ChangeDirectory(path) => {
               println!("thread got dir change! {:?}", path);
 
-              let (a, b) = send_directory_change(&root_path, path, &mut tree, &event_sender);
-              current_dir = a;
-              subscribed_entries = b;
+              subscribed_entries =
+                send_directory_change(&root_path, &path, &mut tree, &event_sender);
+              current_dir = path;
             }
           },
 
@@ -98,6 +101,7 @@ pub fn start_scanner_thread(
 
         let mut bap = current_dir.clone();
         bap.push(relative_name.clone());
+
         let size = tree.at_mut(bap).expect("tree.at").total_size;
         event_sender
           .send(EventMessage::SizeUpdate {
@@ -119,7 +123,7 @@ pub fn start_scanner_thread(
           ThreadControlMessage::ChangeDirectory(path) => {
             println!("thread got dir change (after live update)! {:?}", path);
 
-            send_directory_change(&root_path, path, &mut tree, &event_sender);
+            send_directory_change(&root_path, &path, &mut tree, &event_sender);
           }
         }
       }

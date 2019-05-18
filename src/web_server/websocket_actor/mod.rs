@@ -168,8 +168,7 @@ fn start_event_sender_thread(
           EventMessage::SizeUpdate { entry } => {
             // push to sums, timer somehow
             let (name, size) = match entry {
-              Entry::Directory { name, size } => (name.clone(), *size),
-              Entry::File { name, size } => (name.clone(), *size),
+              Entry::Directory { name, size } | Entry::File { name, size } => (name.clone(), *size),
             };
 
             let sums_mutex = sums_mutex2.clone();

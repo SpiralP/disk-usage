@@ -4,7 +4,7 @@ use log;
 use std::sync::Once;
 
 #[inline]
-pub fn initialize_logger(debug: bool) {
+pub fn initialize(debug: bool) {
   static START: Once = Once::new();
 
   START.call_once(move || {

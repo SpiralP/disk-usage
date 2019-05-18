@@ -20,19 +20,6 @@ impl Directory {
     }
   }
 
-  fn at(&self, components: Vec<String>) -> Option<&Directory> {
-    let mut current = self;
-    for component in components {
-      current = current.entries.get(&component)?;
-    }
-
-    Some(current)
-  }
-
-  fn at_path(&self, path: PathBuf) -> Option<&Directory> {
-    self.at(get_components(&path))
-  }
-
   pub fn at_mut(&mut self, components: Vec<String>) -> Option<&mut Self> {
     let mut current = self;
     for component in components {
@@ -51,7 +38,7 @@ impl Directory {
       current = current
         .entries
         .entry(component.to_owned())
-        .or_insert_with(Directory::new);
+        .or_insert_with(Self::new);
       current.total_size += size;
     }
   }

@@ -12,7 +12,7 @@ pub enum Entry {
 
 pub fn get_directory_entries(
   root_path: &[String],
-  path: Vec<String>,
+  path: &[String],
   tree: &mut Directory,
 ) -> Vec<Entry> {
   // root_path: ["src"]
@@ -20,7 +20,7 @@ pub fn get_directory_entries(
 
 
   // src/web_server/websocket_actor
-  let full_path: PathBuf = root_path.iter().cloned().chain(path.clone()).collect();
+  let full_path: PathBuf = root_path.iter().chain(path).collect();
   let root_path: PathBuf = root_path.iter().collect();
 
   fs::read_dir(full_path)
@@ -36,10 +36,8 @@ pub fn get_directory_entries(
         let relative_path =
           get_components(&path.strip_prefix(root_path.clone()).unwrap().to_path_buf());
 
-        let size = tree
-          .at_mut(relative_path)
-          .map(|dir| dir.total_size)
-          .unwrap_or(0);
+        let size = tree.at_mut(relative_path).map_or(0, |dir| dir.total_size);
+
         Entry::Directory { name, size }
       } else {
         let metadata = entry.metadata().unwrap();
