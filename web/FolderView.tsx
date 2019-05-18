@@ -14,6 +14,7 @@ import { bytes } from "./helpers";
 interface FolderViewWorkerProps {
   entries: Array<Entry>;
   onChangeDirectory: (entry: Entry) => void;
+  onDelete: (entry: Entry) => void;
 }
 
 interface FolderViewWorkerState {
@@ -127,7 +128,7 @@ export default class FolderViewWorker extends React.Component<
   state: FolderViewWorkerState = {};
 
   render() {
-    const { entries, onChangeDirectory } = this.props;
+    const { entries, onChangeDirectory, onDelete } = this.props;
     const { deleteEntry } = this.state;
 
     // sort by size
@@ -159,8 +160,13 @@ export default class FolderViewWorker extends React.Component<
           cancelButtonText="Cancel"
           confirmButtonText="Delete Forever"
           onConfirm={() => {
-            console.warn("TODO delete", deleteEntry);
             this.setState({ deleteEntry: undefined });
+
+            console.info("delete", deleteEntry);
+
+            if (deleteEntry != null) {
+              onDelete(deleteEntry);
+            }
           }}
           onCancel={() => {
             this.setState({ deleteEntry: undefined });

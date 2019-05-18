@@ -32,4 +32,9 @@ interface ControlMessageChangeDirectory {
   path: Array<string>;
 }
 
-declare type ControlMessage = ControlMessageChangeDirectory;
+interface ControlMessageDelete {
+  type: "delete";
+  path: Array<string>;
+}
+
+declare type ControlMessage = ControlMessageChangeDirectory | ControlMessageDelete;

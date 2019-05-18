@@ -86,6 +86,9 @@ export default class FileSizeWorker extends React.Component<
           onChangeDirectory={(entry) => {
             this.send({ type: "changeDirectory", path: [...path, entry.name] });
           }}
+          onDelete={(entry) => {
+            this.send({ type: "delete", path: [...path, entry.name] });
+          }}
         />
 
         <div style={{ display: "flex" }}>

@@ -11,12 +11,14 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use std::{
   collections::HashMap,
+  fs,
   path::PathBuf,
   sync::{Arc, Mutex},
   thread,
 };
 use time::Duration;
 use timer::*;
+
 
 pub struct WebSocketActor {
   root_path: Vec<String>,
@@ -42,6 +44,18 @@ impl WebSocketActor {
       .unwrap()
       .send(ThreadControlMessage::ChangeDirectory(path))
       .unwrap();
+  }
+
+  fn delete(&self, path: Vec<String>) {
+    let full_path: PathBuf = self.root_path.iter().cloned().chain(path).collect();
+    info!("delete {:?}", full_path);
+
+    let metadata = fs::metadata(&full_path).unwrap();
+    if metadata.is_dir() {
+      fs::remove_dir_all(full_path).unwrap();
+    } else {
+      fs::remove_file(full_path).unwrap();
+    }
   }
 }
 
@@ -105,6 +119,10 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WebSocketActor {
           ControlMessage::ChangeDirectory { path } => {
             self.change_dir(path);
           }
+
+          ControlMessage::Delete { path } => {
+            self.delete(path);
+          }
         }
       }
 
@@ -137,6 +155,7 @@ pub enum EventMessage {
 #[serde(tag = "type")]
 enum ControlMessage {
   ChangeDirectory { path: Vec<String> },
+  Delete { path: Vec<String> },
 }
 
 
