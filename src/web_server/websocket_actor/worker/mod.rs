@@ -78,8 +78,6 @@ pub fn start_scanner_thread(
 
             Ok(control_message) => match control_message {
               ThreadControlMessage::ChangeDirectory(path) => {
-                println!("thread got dir change! {:?}", path);
-
                 subscribed_dirs =
                   send_directory_change(&root_path, &path, &mut tree, &event_sender);
                 current_dir = path;
@@ -121,8 +119,6 @@ pub fn start_scanner_thread(
       for control_message in control_receiver {
         match control_message {
           ThreadControlMessage::ChangeDirectory(path) => {
-            println!("thread got dir change (after live update)! {:?}", path);
-
             send_directory_change(&root_path, &path, &mut tree, &event_sender);
           }
         }

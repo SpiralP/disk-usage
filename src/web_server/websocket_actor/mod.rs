@@ -100,7 +100,6 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WebSocketActor {
     match msg {
       ws::Message::Text(text) => {
         let control_message: ControlMessage = serde_json::from_str(&text).unwrap();
-        info!("{:#?}", control_message);
 
         match control_message {
           ControlMessage::ChangeDirectory { path } => {
