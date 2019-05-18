@@ -1,116 +1,84 @@
-use super::FileSize;
+#![allow(dead_code)]
+
 use std::{collections::HashMap, path::PathBuf};
 
+// TODO make get_total_size cache!
+// maybe entries_mut sets dirty flag? then all entries_mut will have to be recomputed
+// maybe subscribe to a certain folder's events and call a think function to calculate?
+
 #[derive(Debug)]
-pub enum Tree {
-  File(u64), // file size
-  Directory(HashMap<String, Tree>),
+pub struct Directory {
+  pub total_size: u64,
+  entries: HashMap<String, Directory>,
 }
 
-impl Tree {
+impl Directory {
   pub fn new() -> Self {
-    Tree::Directory(HashMap::new())
-  }
-
-  pub fn entries(&self) -> &HashMap<String, Tree> {
-    match self {
-      Tree::Directory(map) => map,
-      _ => unreachable!("entries"),
+    Self {
+      total_size: 0,
+      entries: HashMap::new(),
     }
   }
 
-  pub fn entries_mut(&mut self) -> &mut HashMap<String, Tree> {
-    match self {
-      Tree::Directory(map) => map,
-      _ => unreachable!("entries_mut"),
-    }
-  }
-
-  pub fn at(&self, components: Vec<String>) -> Option<&Tree> {
+  fn at(&self, components: Vec<String>) -> Option<&Directory> {
     let mut current = self;
     for component in components {
-      let entries = current.entries();
-
-      current = entries.get(&component)?;
+      current = current.entries.get(&component)?;
     }
 
     Some(current)
   }
 
-  #[allow(dead_code)]
-  pub fn at_path(&self, path: PathBuf) -> Option<&Tree> {
+  fn at_path(&self, path: PathBuf) -> Option<&Directory> {
     self.at(get_components(&path))
   }
 
-  #[allow(dead_code)]
-  pub fn at_mut(&mut self, components: Vec<String>) -> Option<&mut Tree> {
+  pub fn at_mut(&mut self, components: Vec<String>) -> Option<&mut Self> {
     let mut current = self;
     for component in components {
-      let entries = current.entries_mut();
-
-      current = entries.get_mut(&component)?;
+      current = current.entries.get_mut(&component)?;
     }
 
     Some(current)
   }
 
-  pub fn insert_file(&mut self, FileSize(path, size): FileSize) {
-    let mut components = get_components(&path);
-
-    let file_name = components.pop().expect("file_name");
-
+  pub fn insert_file(&mut self, components: &[String], size: u64) {
     let mut current = self;
-    for component in components {
-      let entries = current.entries_mut();
+    current.total_size += size;
 
-      if !entries.contains_key(&component) {
-        entries.insert(component.clone(), Tree::new());
-      }
-
-      current = entries.get_mut(&component).expect("get_mut");
+    // remove filename
+    for component in components.iter().take(components.len() - 1) {
+      current = current
+        .entries
+        .entry(component.to_owned())
+        .or_insert_with(Directory::new);
+      current.total_size += size;
     }
-
-    current.entries_mut().insert(file_name, Tree::File(size));
-  }
-
-  pub fn get_total_size(&self) -> u64 {
-    let entries = self.entries();
-    let mut size = 0;
-
-    for item in entries.values() {
-      let s = match item {
-        Tree::File(size) => *size,
-        tree => tree.get_total_size(),
-      };
-
-      size += s;
-    }
-
-    size
   }
 }
 
 #[test]
 fn test_tree() {
-  use super::FileSizeScanner;
+  use super::{FileSize, FileSizeScanner};
 
   let (scanner, receiver) = FileSizeScanner::start("src".parse().unwrap());
 
-  let mut t = Tree::new();
+  let mut t = Directory::new();
 
-  for file in receiver {
-    t.insert_file(file);
+  for FileSize(path, size) in receiver {
+    let components = get_components(&path);
+    t.insert_file(&components, size);
   }
 
   scanner.join();
 
   println!("{:#?}", t);
-  println!("{}", t.get_total_size());
+  println!("{}", t.total_size);
 }
 
 pub fn get_components(path: &PathBuf) -> Vec<String> {
   path
     .iter()
-    .map(move |os_str| os_str.to_string_lossy().to_string())
+    .map(|os_str| os_str.to_string_lossy().to_string())
     .collect()
 }
