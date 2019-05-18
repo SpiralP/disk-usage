@@ -44,11 +44,13 @@ pub fn static_files_service(req: HttpRequest) -> HttpResponse {
       let mut builder = HttpResponse::Ok();
 
       if file_path.ends_with(".css") {
-        builder.set(ContentType("text/css".parse().unwrap()));
+        builder.set(ContentType("text/css; charset=utf-8".parse().unwrap()));
       } else if file_path.ends_with(".js") {
-        builder.set(ContentType("application/javascript".parse().unwrap()));
+        builder.set(ContentType(
+          "application/javascript; charset=utf-8".parse().unwrap(),
+        ));
       } else if file_path.ends_with(".html") {
-        builder.set(ContentType::html());
+        builder.set(ContentType("text/html; charset=utf-8".parse().unwrap()));
       }
 
       builder.body(bytes.into_owned())

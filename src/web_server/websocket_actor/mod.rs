@@ -46,7 +46,7 @@ impl WebSocketActor {
       .unwrap();
   }
 
-  fn delete(&self, path: Vec<String>) {
+  fn delete(&mut self, path: Vec<String>) {
     let full_path: PathBuf = self.root_path.iter().cloned().chain(path).collect();
     info!("delete {:?}", full_path);
 
@@ -56,6 +56,12 @@ impl WebSocketActor {
     } else {
       fs::remove_file(full_path).unwrap();
     }
+
+    self.refresh();
+  }
+
+  fn refresh(&mut self) {
+    self.change_dir(self.current_dir.clone());
   }
 }
 

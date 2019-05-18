@@ -71,7 +71,7 @@ export default class FileSizeWorker extends React.Component<
       <div>
         <div style={{ paddingLeft: "16px" }}>
           <Breadcrumbs
-            items={[".", ...path].map((name, i) => ({
+            items={["\u2022", ...path].map((name, i) => ({
               text: name,
               icon: "folder-close",
               onClick: () => {
