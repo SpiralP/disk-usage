@@ -136,6 +136,7 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WebSocketActor {
 
       ws::Message::Close(reason) => {
         info!("ws closed");
+        ctx.stop();
         ctx.close(reason)
       }
 

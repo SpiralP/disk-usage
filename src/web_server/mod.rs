@@ -20,16 +20,12 @@ pub fn start(root_path: PathBuf) {
     let root_path = root_path.clone();
 
     App::new()
-      .data(MyData {
-        base_path: "dist",
-        files: &WEB_FILES,
-      })
       .service(
         web::resource("/ws").to(move |req: HttpRequest, stream: web::Payload| {
           ws::start(WebSocketActor::new(&root_path), &req, stream)
         }),
       )
-      .service(static_files_service)
+      .route("/*", static_files_route("dist", &WEB_FILES))
   })
   .bind(LISTEN_ADDR)
   .unwrap()
