@@ -33,6 +33,8 @@ class ProgressBar extends React.Component<
   render() {
     const { value, children } = this.props;
 
+    const percent = isNaN(value) ? 0 : Math.max(0, Math.min(1, value));
+
     return (
       <div
         style={{
@@ -52,7 +54,7 @@ class ProgressBar extends React.Component<
             backgroundColor: "#137CBD1a",
             zIndex: 1,
             position: "absolute",
-            width: `${value * 100}%`,
+            width: `${percent * 100}%`,
             height: "32px",
             top: "-6px",
             left: "-10px",
@@ -87,9 +89,6 @@ class EntryRow extends React.Component<
     );
   }
 
-  // <div>
-  //           {/* <ProgressBar value={0.6} intent="primary" stripes animate /> */}
-  //         </div>
   render() {
     const { entry, onClick, totalSize } = this.props;
 

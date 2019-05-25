@@ -134,9 +134,14 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WebSocketActor {
 
       ws::Message::Ping(msg) => ctx.pong(&msg),
 
-      ws::Message::Close(reason) => ctx.close(reason),
+      ws::Message::Close(reason) => {
+        info!("ws closed");
+        ctx.close(reason)
+      }
 
-      _ => {}
+      _ => {
+        info!("other {:?}", msg);
+      }
     }
   }
 }
