@@ -6,9 +6,9 @@ mod websocket_actor;
 use self::{static_files_includedir::*, websocket_actor::*};
 use actix_web::{web, App, HttpRequest, HttpServer};
 use actix_web_actors::ws;
-
 use open;
 use std::path::PathBuf;
+
 include!(concat!(env!("OUT_DIR"), "/web_files.rs"));
 
 const LISTEN_ADDR: &str = "127.0.0.1:8080";

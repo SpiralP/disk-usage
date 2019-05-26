@@ -11,13 +11,14 @@ interface FileSizeWorkerProps {
 interface FileSizeWorkerState {
   path: Array<string>;
   entries: Array<Entry>;
+  free: number;
 }
 
 export default class FileSizeWorker extends React.Component<
   FileSizeWorkerProps,
   FileSizeWorkerState
 > {
-  state: FileSizeWorkerState = { path: [], entries: [] };
+  state: FileSizeWorkerState = { path: [], entries: [], free: 0 };
 
   componentDidMount() {
     const { emitter } = this.props;
@@ -39,10 +40,11 @@ export default class FileSizeWorker extends React.Component<
 
   receiver = (data: EventMessage) => {
     if (data.type === "directoryChange") {
-      const { path, entries } = data;
+      const { path, entries, free } = data;
       this.setState({
         path,
         entries,
+        free,
       });
     } else if (data.type === "sizeUpdate") {
       const newEntry = data.entry;
@@ -59,7 +61,7 @@ export default class FileSizeWorker extends React.Component<
   };
 
   render() {
-    const { path, entries } = this.state;
+    const { path, entries, free } = this.state;
 
     const totalSize = entries
       .map((entry) => entry.size)
@@ -94,6 +96,10 @@ export default class FileSizeWorker extends React.Component<
           <Divider />
           <h4 title={`${totalSize.toLocaleString()} bytes`}>
             {`Total size: ${bytes(totalSize)}`}
+          </h4>
+          <Divider />
+          <h4 title={`${free.toLocaleString()} bytes`}>
+            {`Free space: ${bytes(free)}`}
           </h4>
         </div>
       </div>

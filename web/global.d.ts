@@ -16,6 +16,7 @@ interface EventMessageDirectoryChange {
   type: "directoryChange";
   path: Array<string>;
   entries: Array<Entry>;
+  free: number;
 }
 
 interface EventMessageSizeUpdate {
@@ -37,4 +38,6 @@ interface ControlMessageDelete {
   path: Array<string>;
 }
 
-declare type ControlMessage = ControlMessageChangeDirectory | ControlMessageDelete;
+declare type ControlMessage =
+  | ControlMessageChangeDirectory
+  | ControlMessageDelete;

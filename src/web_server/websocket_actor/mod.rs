@@ -155,6 +155,7 @@ pub enum EventMessage {
   DirectoryChange {
     path: Vec<String>,
     entries: Vec<Entry>,
+    free: u64,
   },
 
   SizeUpdate {

@@ -1,6 +1,8 @@
 use super::{get_components, Directory};
+use fs2;
 use serde::Serialize;
 use std::{fs, path::*};
+
 
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -14,7 +16,7 @@ pub fn get_directory_entries(
   root_path: &[String],
   path: &[String],
   tree: &mut Directory,
-) -> Vec<Entry> {
+) -> (Vec<Entry>, u64) {
   // root_path: ["src"]
   // path: ["web_server", "websocket_actor"]
 
@@ -23,7 +25,8 @@ pub fn get_directory_entries(
   let full_path: PathBuf = root_path.iter().chain(path).collect();
   let root_path: PathBuf = root_path.iter().collect();
 
-  fs::read_dir(full_path)
+
+  let entries = fs::read_dir(&full_path)
     .expect("read_dir")
     .map(move |maybe_entry| {
       let entry = maybe_entry.expect("maybe_entry");
@@ -54,7 +57,11 @@ pub fn get_directory_entries(
         Entry::File { name, size }
       }
     })
-    .collect()
+    .collect();
+
+  let free_space = fs2::free_space(&full_path).unwrap();
+
+  (entries, free_space)
 }
 
 // #[test]

@@ -14,7 +14,7 @@ fn send_directory_change(
   tree: &mut Directory,
   event_sender: &Sender<EventMessage>,
 ) -> HashSet<String> {
-  let entries = get_directory_entries(root_path, path, tree);
+  let (entries, free_space) = get_directory_entries(root_path, path, tree);
 
   let dirs = entries
     .iter()
@@ -31,6 +31,7 @@ fn send_directory_change(
     .send(EventMessage::DirectoryChange {
       path: path.to_owned(),
       entries,
+      free: free_space,
     })
     .unwrap();
 
