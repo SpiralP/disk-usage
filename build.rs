@@ -1,10 +1,12 @@
 use includedir_codegen::Compression;
-use std::process::Command;
+use std::{fs, process::Command};
 
 fn main() {
   use std::env;
 
   if !env::var("OUT_DIR").unwrap().contains("/rls/") {
+    let _ = fs::remove_dir_all("dist");
+
     let ok = if cfg!(target_os = "windows") {
       Command::new("cmd")
         .args(&["/C", "yarn build"])
@@ -21,7 +23,6 @@ fn main() {
     };
     assert!(ok);
   }
-
 
   includedir_codegen::start("WEB_FILES")
     .dir("dist", Compression::Gzip)

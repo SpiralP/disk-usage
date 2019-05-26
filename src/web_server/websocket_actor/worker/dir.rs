@@ -3,7 +3,6 @@ use fs2;
 use serde::Serialize;
 use std::{fs, path::*};
 
-
 #[derive(Debug, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
@@ -20,11 +19,9 @@ pub fn get_directory_entries(
   // root_path: ["src"]
   // path: ["web_server", "websocket_actor"]
 
-
   // src/web_server/websocket_actor
   let full_path: PathBuf = root_path.iter().chain(path).collect();
   let root_path: PathBuf = root_path.iter().collect();
-
 
   let entries = fs::read_dir(&full_path)
     .expect("read_dir")

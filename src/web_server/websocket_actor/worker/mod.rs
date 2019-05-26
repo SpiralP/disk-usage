@@ -76,7 +76,6 @@ pub fn start_scanner_thread(
               break;
             }
 
-
             Ok(control_message) => match control_message {
               ThreadControlMessage::ChangeDirectory(path) => {
                 subscribed_dirs =

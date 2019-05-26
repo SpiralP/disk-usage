@@ -19,7 +19,6 @@ use std::{
 use time::Duration;
 use timer::*;
 
-
 pub struct WebSocketActor {
   root_path: Vec<String>,
   current_dir: Vec<String>,
@@ -147,7 +146,6 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for WebSocketActor {
   }
 }
 
-
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
@@ -170,7 +168,6 @@ enum ControlMessage {
   ChangeDirectory { path: Vec<String> },
   Delete { path: Vec<String> },
 }
-
 
 const UPDATE_INTERVAL: i64 = 500;
 
@@ -234,10 +231,8 @@ fn start_event_sender_thread(
           }
         }
 
-
         addr.do_send(TextMessage(serde_json::to_string(&event).unwrap()));
       }
-
     })
     .unwrap()
 }
