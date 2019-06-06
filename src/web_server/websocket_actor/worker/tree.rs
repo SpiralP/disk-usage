@@ -46,18 +46,16 @@ impl Directory {
 
 #[test]
 fn test_tree() {
-  use super::{FileSize, FileSizeScanner};
-
-  let (scanner, receiver) = FileSizeScanner::start("src".parse().unwrap());
+  use super::walker::*;
 
   let mut t = Directory::new();
 
-  for FileSize(path, size) in receiver {
+  for FileSize(path, size) in walk("src".parse().unwrap()) {
+    println!("{:?}", path);
+
     let components = get_components(path);
     t.insert_file(&components, size);
   }
-
-  scanner.join();
 
   println!("{:#?}", t);
   println!("{}", t.total_size);

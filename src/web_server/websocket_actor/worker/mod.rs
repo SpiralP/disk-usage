@@ -1,10 +1,10 @@
 mod dir;
 mod tree;
+mod walker;
 
-pub use self::{dir::*, tree::*};
+pub use self::{dir::*, tree::*, walker::*};
 use super::EventMessage;
 use crossbeam::channel::{Receiver, Sender, TryRecvError};
-use directory_size::*;
 use log::*;
 use std::{collections::HashSet, thread, time::Instant};
 
@@ -55,7 +55,6 @@ pub fn start_scanner_thread(
       // live update
       {
         let start_time = Instant::now();
-        let (_scanner, file_receiver) = FileSizeScanner::start(root_path.iter().collect());
 
         let mut current_dir;
         let mut subscribed_dirs;
@@ -67,7 +66,7 @@ pub fn start_scanner_thread(
             current_dir = path;
           }
         };
-        for FileSize(path, size) in file_receiver {
+        for FileSize(path, size) in walk(root_path.iter().collect()) {
           match control_receiver.try_recv() {
             Err(TryRecvError::Empty) => {}
 
