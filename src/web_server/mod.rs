@@ -11,7 +11,7 @@ use std::path::PathBuf;
 
 include!(concat!(env!("OUT_DIR"), "/web_files.rs"));
 
-const LISTEN_ADDR: &str = "127.0.0.1:8080";
+const LISTEN_ADDR: &str = "127.0.0.1:8181";
 
 pub fn start(root_path: PathBuf) {
   open::that(format!("http://{}/", LISTEN_ADDR)).unwrap();
