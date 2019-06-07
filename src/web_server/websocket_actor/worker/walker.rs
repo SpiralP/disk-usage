@@ -1,5 +1,5 @@
 use jwalk::WalkDir;
-use std::path::{PathBuf};
+use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub struct FileSize(pub PathBuf, pub u64);
@@ -22,7 +22,7 @@ pub fn walk(root_path: PathBuf) -> impl Iterator<Item = FileSize> {
       let entry = try_filter!(maybe_entry);
 
       if try_filter!(entry.file_type).is_file() {
-        let path = try_filter!(entry.path().strip_prefix(root_path.clone())).to_path_buf();
+        let path = try_filter!(entry.path().strip_prefix(&root_path)).to_path_buf();
         let metadata = try_filter!(try_filter!(entry.metadata.ok_or(())));
         let len = metadata.len();
 

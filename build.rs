@@ -21,11 +21,11 @@ fn run(cmd: &str) -> bool {
 fn main() {
   use std::env;
 
-  if fs::metadata("node_modules").is_err() {
-    assert!(run("yarn install"));
-  }
+  if !env::var("OUT_DIR").unwrap().contains("rls") {
+    if fs::metadata("node_modules").is_err() {
+      assert!(run("yarn install"));
+    }
 
-  if !env::var("OUT_DIR").unwrap().contains("/rls/") {
     let _ = fs::remove_dir_all("dist");
 
     assert!(run("yarn build"));
