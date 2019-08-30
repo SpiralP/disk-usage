@@ -9,8 +9,6 @@ use actix_web_actors::ws;
 use open;
 use std::path::PathBuf;
 
-include!(concat!(env!("OUT_DIR"), "/web_files.rs"));
-
 const LISTEN_ADDR: &str = "127.0.0.1:8181";
 
 pub fn start(root_path: PathBuf) {
@@ -25,7 +23,7 @@ pub fn start(root_path: PathBuf) {
           ws::start(WebSocketActor::new(&root_path), &req, stream)
         }),
       )
-      .route("/*", static_files_route("dist", &WEB_FILES))
+      .route("/*", static_files_route())
   })
   .bind(LISTEN_ADDR)
   .unwrap()
