@@ -1,5 +1,3 @@
-#![allow(clippy::unreadable_literal)]
-
 mod static_files_includedir;
 mod websocket_actor;
 
@@ -12,7 +10,9 @@ use std::path::PathBuf;
 const LISTEN_ADDR: &str = "127.0.0.1:8181";
 
 pub fn start(root_path: PathBuf) {
-  open::that(format!("http://{}/", LISTEN_ADDR)).unwrap();
+  if let Err(err) = open::that(format!("http://{}/", LISTEN_ADDR)) {
+    eprintln!("couldn't open http link: {}", err);
+  }
 
   HttpServer::new(move || {
     let root_path = root_path.clone();

@@ -1,9 +1,5 @@
 #![warn(clippy::pedantic)]
 
-// react/tsx
-// POST /delete or even DELETE
-// multi thread scanning, live view
-
 mod logger;
 mod web_server;
 
