@@ -95,6 +95,8 @@ impl Actor for WebSocketActor {
 
   fn stopped(&mut self, _ctx: &mut Self::Context) {
     info!("ws stopped");
+
+    std::process::exit(0);
   }
 }
 
