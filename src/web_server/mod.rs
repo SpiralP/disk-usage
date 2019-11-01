@@ -1,10 +1,10 @@
-mod static_files_includedir;
 mod websocket_actor;
 
-use self::{static_files_includedir::*, websocket_actor::*};
+use self::websocket_actor::*;
 use actix_web::{web, App, HttpRequest, HttpServer};
 use actix_web_actors::ws;
 use open;
+use parceljs::actix::static_files_route;
 use std::path::PathBuf;
 
 const LISTEN_ADDR: &str = "127.0.0.1:8181";
