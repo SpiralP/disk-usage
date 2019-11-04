@@ -39,6 +39,7 @@ impl Directory {
         .entries
         .entry(component.to_owned())
         .or_insert_with(Self::new);
+
       current.total_size += size;
     }
   }

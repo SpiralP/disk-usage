@@ -4,15 +4,19 @@ mod walker;
 
 pub use self::{dir::*, tree::*, walker::*};
 use super::EventMessage;
-use crossbeam::channel::{Receiver, Sender, TryRecvError};
 use log::*;
-use std::{collections::HashSet, thread, time::Instant};
+use std::{
+  collections::HashSet,
+  sync::mpsc::{Receiver, TryRecvError},
+  thread,
+  time::Instant,
+};
 
 fn send_directory_change(
   root_path: &[String],
   path: &[String],
   tree: &mut Directory,
-  event_sender: &Sender<EventMessage>,
+  event_sender: &futures::channel::mpsc::UnboundedSender<EventMessage>,
 ) -> HashSet<String> {
   let (entries, free_space) = get_directory_entries(root_path, path, tree);
 
@@ -28,7 +32,7 @@ fn send_directory_change(
     .collect();
 
   event_sender
-    .send(EventMessage::DirectoryChange {
+    .unbounded_send(EventMessage::DirectoryChange {
       path: path.to_owned(),
       entries,
       free: free_space,
@@ -45,7 +49,7 @@ pub enum ThreadControlMessage {
 pub fn start_scanner_thread(
   root_path: Vec<String>,
   control_receiver: Receiver<ThreadControlMessage>,
-  event_sender: Sender<EventMessage>,
+  event_sender: futures::channel::mpsc::UnboundedSender<EventMessage>,
 ) -> thread::JoinHandle<()> {
   thread::Builder::new()
     .name("scanner".to_string())
@@ -65,7 +69,8 @@ pub fn start_scanner_thread(
             subscribed_dirs = send_directory_change(&root_path, &path, &mut tree, &event_sender);
             current_dir = path;
           }
-        };
+        }
+
         for FileSize(path, size) in walk(root_path.iter().collect()) {
           match control_receiver.try_recv() {
             Err(TryRecvError::Empty) => {}
@@ -102,7 +107,7 @@ pub fn start_scanner_thread(
             .expect("tree.at")
             .total_size;
           event_sender
-            .send(EventMessage::SizeUpdate {
+            .unbounded_send(EventMessage::SizeUpdate {
               entry: Entry::Directory {
                 name: relative_name.clone(),
                 size,
