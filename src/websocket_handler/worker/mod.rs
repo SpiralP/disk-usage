@@ -5,7 +5,7 @@ mod walker;
 pub use self::{dir::*, tree::*, walker::*};
 use super::EventMessage;
 use futures::{
-  channel::mpsc::{UnboundedReceiver, UnboundedSender},
+  channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender},
   future::Either,
   prelude::*,
   stream,
@@ -32,14 +32,16 @@ async fn send_directory_change(
     })
     .collect();
 
-  event_sender
+  if let Err(e) = event_sender
     .send(EventMessage::DirectoryChange {
       path: path.to_owned(),
       entries,
       free: free_space,
     })
     .await
-    .unwrap();
+  {
+    warn!("send_directory_change: {}", e);
+  }
 
   dirs
 }
@@ -48,13 +50,16 @@ pub enum ScannerControlMessage {
   ChangeDirectory(Vec<String>),
 }
 
-pub async fn start_scanner_thread(
+pub async fn spawn_scanner_stream(
   root_path: Vec<String>,
   mut control_receiver: UnboundedReceiver<ScannerControlMessage>,
-  mut event_sender: UnboundedSender<EventMessage>,
-) {
+) -> UnboundedReceiver<EventMessage> {
+  let (mut event_sender, event_receiver) = unbounded();
+
+  // TODO is this still true??
   // use a separate thread for this future because
   // iterator-streams block the tokio threadpool
+
   tokio::spawn(async move {
     let mut tree = Directory::new();
 
@@ -93,7 +98,6 @@ pub async fn start_scanner_thread(
               send_directory_change(&root_path, &path, &mut tree, &mut event_sender).await;
             current_dir = path;
           } else {
-            println!("DISCONNECT?");
             break;
           }
         }
@@ -117,14 +121,18 @@ pub async fn start_scanner_thread(
               .at_mut(&components[..=current_dir.len()])
               .expect("tree.at")
               .total_size;
-            event_sender
-              .unbounded_send(EventMessage::SizeUpdate {
+
+            if let Err(e) = event_sender
+              .send(EventMessage::SizeUpdate {
                 entry: Entry::Directory {
                   name: relative_name.clone(),
                   size,
                 },
               })
-              .expect("event_sender.send");
+              .await
+            {
+              warn!("scanner to event_sender: {}", e);
+            }
           } else {
             let end_time = Instant::now();
             info!("scanner done! {:?}", end_time - start_time);
@@ -132,5 +140,9 @@ pub async fn start_scanner_thread(
         }
       }
     } // while either_stream
+
+    debug!("scanner either_stream completed");
   });
+
+  event_receiver
 }

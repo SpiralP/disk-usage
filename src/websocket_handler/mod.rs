@@ -3,7 +3,7 @@ mod worker;
 use self::worker::*;
 use crate::error::*;
 use futures::{
-  channel::mpsc::{unbounded as unbounded_stream, UnboundedSender},
+  channel::mpsc::{unbounded as unbounded_stream, UnboundedReceiver, UnboundedSender},
   lock::Mutex,
   prelude::*,
 };
@@ -73,47 +73,63 @@ impl WebsocketHandler {
   pub async fn start(&mut self, ws: warp::ws::WebSocket) -> Result<()> {
     info!("ws started");
 
-    let (ws_sink, mut ws_stream) = ws.split();
+    let (mut ws_sender, mut ws_receiver) = ws.split();
 
     let (thread_control_sender, thread_control_receiver) = unbounded_stream();
     self.thread_control_sender = Some(thread_control_sender);
 
-    let (event_sender, event_receiver) = unbounded_stream();
-
     // send initial current directory entries
     self.change_dir(Vec::new()).await;
 
-    tokio::spawn(async move {
-      let event_receiver = spawn_size_update_stream(event_receiver);
+    // scanner -> size_update -> ws_sender
 
-      event_receiver
-        .map(Ok)
-        .forward(ws_sink.with(|event: EventMessage| {
-          async move {
-            let s = serde_json::to_string(&event).unwrap();
-            Ok::<_, warp::Error>(warp::ws::Message::text(s))
-          }
-        }))
-        .await
-        .unwrap();
-    });
+    let event_receiver =
+      spawn_scanner_stream(self.root_path.clone(), thread_control_receiver).await;
 
-    start_scanner_thread(
-      self.root_path.clone(),
-      thread_control_receiver,
-      event_sender,
-    )
-    .await;
+    let mut event_receiver = spawn_size_update_stream(event_receiver);
 
-    while let Some(message) = ws_stream.next().await {
-      let message = message.chain_err(|| "ws_stream message error")?;
-      if message.is_text() {
-        let text = message.to_str().unwrap();
-        self.handle_message(text).await;
-      } else if message.is_close() {
-        println!("CLOSE");
+    let ws_sender_future = async move {
+      while let Some(event) = event_receiver.next().await {
+        let s = serde_json::to_string(&event).unwrap();
+        let message = warp::ws::Message::text(s);
+        if let Err(e) = ws_sender.send(message).await {
+          warn!("ws_sender: {}", e);
+          break;
+        }
       }
+
+      debug!("ws_sender completed");
     }
+    .boxed();
+
+    let ws_receiver_future = async move {
+      while let Some(maybe_message) = ws_receiver.next().await {
+        match maybe_message {
+          Ok(message) => {
+            if message.is_text() {
+              let text = message.to_str().unwrap();
+              self.handle_message(text).await;
+            } else if message.is_close() {
+              debug!("ws close");
+              break;
+            }
+          }
+
+          Err(e) => {
+            warn!("ws_receiver.next(): {}", e);
+            break;
+          }
+        }
+      }
+
+      debug!("ws_receiver completed");
+    }
+    .boxed();
+
+    // race the websocket sender and receiver to determine close
+    future::select(ws_sender_future, ws_receiver_future).await;
+
+    info!("ws stopped");
 
     Ok(())
   }
@@ -144,25 +160,21 @@ enum ControlMessage {
 
 const UPDATE_INTERVAL: u64 = 500;
 
-fn spawn_size_update_stream<T>(mut event_receiver: T) -> impl Stream<Item = EventMessage>
-where
-  T: Stream<Item = EventMessage> + Unpin + Send + 'static,
-{
-  let (mut sender, receiver) = unbounded_stream();
+fn spawn_size_update_stream(
+  mut event_receiver: UnboundedReceiver<EventMessage>,
+) -> UnboundedReceiver<EventMessage> {
+  let (mut event_sender, new_event_receiver) = unbounded_stream();
 
   tokio::spawn(async move {
     #[allow(clippy::type_complexity)]
     let sums_mutex = Arc::new(Mutex::new(HashMap::new()));
-
-    let sums_mutex2 = sums_mutex.clone();
+    let sums_mutex_weak = Arc::downgrade(&sums_mutex);
 
     while let Some(event) = event_receiver.next().await {
-      let mut sums = sums_mutex.lock().await;
-
       match &event {
         EventMessage::DirectoryChange { .. } => {
           // clear maps, stop timers!!
-          sums.clear();
+          sums_mutex.lock().await.clear();
         }
 
         EventMessage::SizeUpdate { entry } => {
@@ -171,7 +183,9 @@ where
             Entry::Directory { name, size } | Entry::File { name, size } => (name.clone(), *size),
           };
 
-          sums
+          sums_mutex
+            .lock()
+            .await
             .entry(name.clone())
             .and_modify(|(old_size, _remote_handle)| {
               // always modify size
@@ -179,16 +193,22 @@ where
             })
             .or_insert_with(|| {
               // if no entry then start timer
-              let sums_mutex = sums_mutex2.clone();
-              let mut sender = sender.clone();
+              let sums_mutex_weak = sums_mutex_weak.clone();
+              let mut event_sender = event_sender.clone();
 
-              let fut = async move {
+              let (fut, remote_handle) = async move {
                 tokio::timer::delay_for(Duration::from_millis(UPDATE_INTERVAL)).await;
 
+                // this upgrade shouldn't fail because when spawn_size_update_stream's remote handle is dropped,
+                // the only true reference to sums_mutex will be dropped,
+                // causing this timer future to be dropped and stop running
+                let sums_mutex = sums_mutex_weak
+                  .upgrade()
+                  .expect("sums_mutex_weak.upgrade shouldn't happen??");
                 let mut sums = sums_mutex.lock().await;
                 let (size, my_remote_handle) = sums.remove(&name).unwrap();
 
-                sender
+                if let Err(e) = event_sender
                   .send(EventMessage::SizeUpdate {
                     entry: Entry::Directory {
                       name: name.clone(),
@@ -196,12 +216,13 @@ where
                     },
                   })
                   .await
-                  .unwrap();
+                {
+                  warn!("timer size_update: {}", e);
+                }
 
                 drop(my_remote_handle);
-              };
-
-              let (fut, remote_handle) = fut.remote_handle();
+              }
+              .remote_handle();
               // we will drop remote_handle (and stop the timer) on dir change "sums.clear()"
               tokio::spawn(fut);
 
@@ -212,9 +233,13 @@ where
         }
       }
 
-      sender.send(event).await.unwrap();
-    }
+      if let Err(e) = event_sender.send(event).await {
+        warn!("size_update: {}", e);
+      }
+    } // while event_receiver
+
+    debug!("size_update event_receiver completed");
   });
 
-  receiver
+  new_event_receiver
 }
