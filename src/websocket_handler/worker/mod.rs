@@ -4,19 +4,20 @@ mod walker;
 
 pub use self::{dir::*, tree::*, walker::*};
 use super::EventMessage;
-use log::*;
-use std::{
-  collections::HashSet,
-  sync::mpsc::{Receiver, TryRecvError},
-  thread,
-  time::Instant,
+use futures::{
+  channel::mpsc::{UnboundedReceiver, UnboundedSender},
+  future::Either,
+  prelude::*,
+  stream,
 };
+use log::*;
+use std::{collections::HashSet, time::Instant};
 
-fn send_directory_change(
+async fn send_directory_change(
   root_path: &[String],
   path: &[String],
   tree: &mut Directory,
-  event_sender: &futures::channel::mpsc::UnboundedSender<EventMessage>,
+  event_sender: &mut UnboundedSender<EventMessage>,
 ) -> HashSet<String> {
   let (entries, free_space) = get_directory_entries(root_path, path, tree);
 
@@ -32,101 +33,104 @@ fn send_directory_change(
     .collect();
 
   event_sender
-    .unbounded_send(EventMessage::DirectoryChange {
+    .send(EventMessage::DirectoryChange {
       path: path.to_owned(),
       entries,
       free: free_space,
     })
+    .await
     .unwrap();
 
   dirs
 }
 
-pub enum ThreadControlMessage {
+pub enum ScannerControlMessage {
   ChangeDirectory(Vec<String>),
 }
 
-pub fn start_scanner_thread(
+pub async fn start_scanner_thread(
   root_path: Vec<String>,
-  control_receiver: Receiver<ThreadControlMessage>,
-  event_sender: futures::channel::mpsc::UnboundedSender<EventMessage>,
-) -> thread::JoinHandle<()> {
-  thread::Builder::new()
-    .name("scanner".to_string())
-    .spawn(move || {
-      let mut tree = Directory::new();
+  mut control_receiver: UnboundedReceiver<ScannerControlMessage>,
+  mut event_sender: UnboundedSender<EventMessage>,
+) {
+  // use a separate thread for this future because
+  // iterator-streams block the tokio threadpool
+  tokio::spawn(async move {
+    let mut tree = Directory::new();
 
-      // live update
-      {
-        let start_time = Instant::now();
+    let start_time = Instant::now();
 
-        let mut current_dir;
-        let mut subscribed_dirs;
+    let mut current_dir;
+    let mut subscribed_dirs;
 
-        // wait for default current directory
-        match control_receiver.recv().unwrap() {
-          ThreadControlMessage::ChangeDirectory(path) => {
-            subscribed_dirs = send_directory_change(&root_path, &path, &mut tree, &event_sender);
+    // wait for default current directory
+    match control_receiver.next().await.unwrap() {
+      ScannerControlMessage::ChangeDirectory(path) => {
+        subscribed_dirs =
+          send_directory_change(&root_path, &path, &mut tree, &mut event_sender).await;
+        current_dir = path;
+      }
+    }
+
+    let file_size_stream = walk(root_path.iter().collect()).await;
+
+    let mut either_stream = stream::select(
+      control_receiver
+        .map(Some)
+        .chain(stream::once(future::ready(None)))
+        .map(Either::Left),
+      file_size_stream
+        .map(Some)
+        .chain(stream::once(future::ready(None)))
+        .map(Either::Right),
+    );
+
+    while let Some(either) = either_stream.next().await {
+      match either {
+        Either::Left(control_message) => {
+          if let Some(ScannerControlMessage::ChangeDirectory(path)) = control_message {
+            subscribed_dirs =
+              send_directory_change(&root_path, &path, &mut tree, &mut event_sender).await;
             current_dir = path;
+          } else {
+            println!("DISCONNECT?");
+            break;
           }
         }
 
-        for FileSize(path, size) in walk(root_path.iter().collect()) {
-          match control_receiver.try_recv() {
-            Err(TryRecvError::Empty) => {}
+        Either::Right(file_size_message) => {
+          if let Some(FileSize(path, size)) = file_size_message {
+            let components = get_components(path);
+            tree.insert_file(&components, size);
 
-            Err(TryRecvError::Disconnected) => {
-              warn!("control_message disconnected?");
-              break;
+            if !components.starts_with(&current_dir) {
+              // new file is not in current directory
+              continue;
             }
 
-            Ok(control_message) => match control_message {
-              ThreadControlMessage::ChangeDirectory(path) => {
-                subscribed_dirs =
-                  send_directory_change(&root_path, &path, &mut tree, &event_sender);
-                current_dir = path;
-              }
-            },
-          }
+            let relative_name = &components[current_dir.len()];
+            if !subscribed_dirs.contains(relative_name) {
+              continue;
+            }
 
-          let components = get_components(path);
-          tree.insert_file(&components, size);
-
-          if !components.starts_with(&current_dir) {
-            // new file is not in current directory
-            continue;
-          }
-
-          let relative_name = &components[current_dir.len()];
-          if !subscribed_dirs.contains(relative_name) {
-            continue;
-          }
-
-          let size = tree
-            .at_mut(&components[..=current_dir.len()])
-            .expect("tree.at")
-            .total_size;
-          event_sender
-            .unbounded_send(EventMessage::SizeUpdate {
-              entry: Entry::Directory {
-                name: relative_name.clone(),
-                size,
-              },
-            })
-            .expect("event_sender.send");
-        }
-
-        let end_time = Instant::now();
-        info!("scanner done! {:?}", end_time - start_time);
-      }
-
-      for control_message in control_receiver {
-        match control_message {
-          ThreadControlMessage::ChangeDirectory(path) => {
-            send_directory_change(&root_path, &path, &mut tree, &event_sender);
+            let size = tree
+              .at_mut(&components[..=current_dir.len()])
+              .expect("tree.at")
+              .total_size;
+            event_sender
+              .unbounded_send(EventMessage::SizeUpdate {
+                entry: Entry::Directory {
+                  name: relative_name.clone(),
+                  size,
+                },
+              })
+              .expect("event_sender.send");
+          } else {
+            let end_time = Instant::now();
+            info!("scanner done! {:?}", end_time - start_time);
           }
         }
       }
-    })
-    .unwrap()
+    } // while either_stream
+  });
 }

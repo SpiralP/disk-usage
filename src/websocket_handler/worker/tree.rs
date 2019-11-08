@@ -45,13 +45,15 @@ impl Directory {
   }
 }
 
-#[test]
-fn test_tree() {
+#[tokio::test]
+async fn test_tree() {
   use super::walker::*;
+  use futures::prelude::*;
 
   let mut t = Directory::new();
 
-  for FileSize(path, size) in walk("src".parse().unwrap()) {
+  let mut file_size_stream = walk("src".parse().unwrap()).await;
+  while let Some(FileSize(path, size)) = file_size_stream.next().await {
     println!("{:?}", path);
 
     let components = get_components(path);
