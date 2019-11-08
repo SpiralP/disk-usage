@@ -8,8 +8,8 @@ pub async fn start(addr: SocketAddr, root_path: PathBuf) {
   info!("starting http/websocket server on http://{}/", addr);
 
   let routes = warp::path("ws")
-    .and(warp::ws2())
-    .map(move |ws: warp::ws::Ws2| {
+    .and(warp::ws())
+    .map(move |ws: warp::ws::Ws| {
       let root_path = root_path.clone();
       ws.on_upgrade(move |ws| {
         async move {
