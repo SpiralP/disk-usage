@@ -25,6 +25,7 @@ async fn main() -> Result<()> {
       (version: crate_version!())
 
       (@arg debug: -v --verbose --debug ... "Show debug messages, multiple flags for higher verbosity")
+      (@arg keep_open: -k "Keep program alive after websocket closed")
       (@arg no_browser: -n --("no-browser") "Don't open browser")
 
       (@arg path: [PATH] +required default_value(".") "Path")
@@ -54,7 +55,8 @@ async fn main() -> Result<()> {
 
   let path: PathBuf = matches.value_of("path").unwrap().into();
 
-  web_server::start(web_server_addr, path).await;
+  let keep_open = matches.is_present("keep_open");
+  web_server::start(web_server_addr, path, keep_open).await;
 
   Ok(())
 }

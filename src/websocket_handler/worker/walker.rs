@@ -6,6 +6,7 @@ use std::path::PathBuf;
 pub struct FileSize(pub PathBuf, pub u64);
 
 pub async fn walk(root_path: PathBuf) -> impl Stream<Item = FileSize> {
+  // TODO are iterator streams still bad/blocking the tokio pool?
   futures::stream::iter(
     WalkDir::new(&root_path)
       .preload_metadata(true)
