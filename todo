@@ -9,18 +9,7 @@
 Total disk usage:   3.7 MiB
 
 
-
-
-- send all information to web for it to handle
-
-- only send some information
-like sizes and current folder entries only?
-
-
 search?
 
-
-
-paging so it doesn't lag on huge dirs
 
 have a spinny for the "still loading" directory icons

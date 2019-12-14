@@ -78,9 +78,6 @@ impl WebsocketHandler {
     let (thread_control_sender, thread_control_receiver) = unbounded_stream();
     self.thread_control_sender = Some(thread_control_sender);
 
-    // send initial current directory entries
-    self.change_dir(Vec::new()).await;
-
     // scanner -> size_update -> ws_sender
 
     let event_receiver =

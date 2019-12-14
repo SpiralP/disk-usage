@@ -44,6 +44,8 @@ export default class App extends React.Component<AppProps, AppState> {
     if (this.state.state === "open") {
       return <MainView ws={this.state.ws} />;
     } else {
+      // TODO maybe don't remove the MainView when closed!
+      // but instead show a status message
       return (
         <h1>
           {state === "connecting"

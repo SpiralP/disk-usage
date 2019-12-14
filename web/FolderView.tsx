@@ -1,5 +1,4 @@
 import React from "react";
-import EventEmitter from "events";
 import {
   HTMLTable,
   Icon,
@@ -9,20 +8,8 @@ import {
   Alert,
   MenuItem,
 } from "@blueprintjs/core";
-import { bytes } from "./helpers";
-
-interface FolderViewWorkerProps {
-  entries: Array<Entry>;
-  onChangeDirectory: (entry: Entry) => void;
-  onDelete: (entry: Entry) => void;
-}
-
-interface FolderViewWorkerState {
-  deleteEntry?: Entry;
-}
-
-const NameColumnStyle = { width: "100%" };
-const SizeColumnStyle: { textAlign: "right" } = { textAlign: "right" };
+import { bytes, time } from "./helpers";
+import ReactDOM from "react-dom";
 
 class ProgressBar extends React.Component<
   {
@@ -64,6 +51,9 @@ class ProgressBar extends React.Component<
     );
   }
 }
+
+const NameColumnStyle = { width: "100%" };
+const SizeColumnStyle: { textAlign: "right" } = { textAlign: "right" };
 
 @ContextMenuTarget
 class EntryRow extends React.Component<
@@ -120,97 +110,174 @@ class EntryRow extends React.Component<
   }
 }
 
-export default class FolderViewWorker extends React.Component<
-  FolderViewWorkerProps,
-  FolderViewWorkerState
+interface FolderViewProps {
+  entries: Array<Entry>;
+  onChangeDirectory: (entry: Entry) => void;
+  onDelete: (entry: Entry) => void;
+}
+
+interface FolderViewState {
+  deleteEntry?: Entry;
+  numberOfShownEntries: number;
+}
+
+export default class FolderView extends React.Component<
+  FolderViewProps,
+  FolderViewState
 > {
-  state: FolderViewWorkerState = {};
+  state: FolderViewState = {
+    numberOfShownEntries: 100,
+  };
+
+  tableRef: React.RefObject<HTMLTable> = React.createRef();
+
+  componentDidMount() {
+    window.addEventListener("scroll", this.handleScroll);
+    this.handleScroll();
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("scroll", this.handleScroll);
+  }
+
+  isScrolledPastEnd() {
+    const last = this.tableRef.current;
+    if (!last) {
+      return false;
+    }
+
+    const el = ReactDOM.findDOMNode(last);
+    if (el instanceof HTMLElement) {
+      const elTop = el.offsetTop;
+      const elHeight = el.offsetHeight;
+      const elBottomPos = elTop + elHeight;
+
+      const scrollTop = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const pageBottomPos = scrollTop + windowHeight;
+
+      if (elBottomPos < pageBottomPos) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  handleScroll = () => {
+    const { entries } = this.props;
+    const { numberOfShownEntries } = this.state;
+
+    if (entries.length <= numberOfShownEntries) {
+      return;
+    }
+
+    if (this.isScrolledPastEnd()) {
+      console.log("scrolled past, giving more!");
+
+      this.setState({
+        numberOfShownEntries: numberOfShownEntries + 100,
+      });
+    }
+  };
+
+  componentDidUpdate() {
+    this.handleScroll();
+  }
 
   render() {
-    const { entries, onChangeDirectory, onDelete } = this.props;
-    const { deleteEntry } = this.state;
+    return time("FolderView render", () => {
+      const { entries, onChangeDirectory, onDelete } = this.props;
+      const { deleteEntry, numberOfShownEntries } = this.state;
 
-    // sort by size
-    const sortedEntries = entries.slice(0).sort((left, right) => {
-      const a = left.size;
-      const b = right.size;
+      const totalSize = entries
+        .map((entry) => entry.size)
+        .reduce((last, current) => last + current, 0);
 
-      // greater first
-      if (a > b) return -1;
-      if (a < b) return 1;
+      // sort by size
+      const sortedEntries = entries
+        .slice(0)
+        .sort((left, right) => {
+          const a = left.size;
+          const b = right.size;
 
-      // show directories first
-      if (left.type === "directory" && right.type === "file") return -1;
-      if (left.type === "file" && right.type === "directory") return 1;
+          // greater first
+          if (a > b) return -1;
+          if (a < b) return 1;
 
-      // a-z
-      if (left.name < right.name) return -1;
-      if (left.name > right.name) return 1;
+          // show directories first
+          if (left.type === "directory" && right.type === "file") return -1;
+          if (left.type === "file" && right.type === "directory") return 1;
 
-      return 0;
-    });
+          // a-z
+          if (left.name < right.name) return -1;
+          if (left.name > right.name) return 1;
 
-    return (
-      <div style={{ paddingBottom: "16px" }}>
-        <Alert
-          isOpen={deleteEntry ? true : false}
-          icon="trash"
-          intent={Intent.DANGER}
-          cancelButtonText="Cancel"
-          confirmButtonText="Delete Forever"
-          onConfirm={() => {
-            this.setState({ deleteEntry: undefined });
+          return 0;
+        })
+        .slice(0, numberOfShownEntries);
 
-            console.info("delete", deleteEntry);
-
-            if (deleteEntry != null) {
-              onDelete(deleteEntry);
+      const sortedEntriesElements = sortedEntries.map((entry, i) => (
+        <EntryRow
+          key={i}
+          entry={entry}
+          onDelete={() => {
+            this.setState({ deleteEntry: entry });
+          }}
+          onClick={() => {
+            if (entry.type === "directory") {
+              onChangeDirectory(entry);
             }
           }}
-          onCancel={() => {
-            this.setState({ deleteEntry: undefined });
-          }}
-        >
-          <p>
-            Are you sure you want to delete{" "}
-            <b>{deleteEntry ? deleteEntry.name : "<unknown>"}</b> forever?
-          </p>
-        </Alert>
+          totalSize={totalSize}
+        />
+      ));
 
-        <HTMLTable
-          bordered
-          condensed
-          interactive
-          striped
-          style={{ width: "100%", whiteSpace: "nowrap" }}
-        >
-          <thead>
-            <tr>
-              <th style={NameColumnStyle}>Name</th>
-              <th style={SizeColumnStyle}>Size</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedEntries.map((entry, i) => (
-              <EntryRow
-                key={i}
-                entry={entry}
-                onDelete={() => {
-                  this.setState({ deleteEntry: entry });
-                }}
-                onClick={() => {
-                  if (entry.type === "directory") {
-                    onChangeDirectory(entry);
-                  }
-                }}
-                totalSize={entries
-                  .map((entry) => entry.size)
-                  .reduce((last, current) => last + current, 0)}
-              />
-            ))}
-          </tbody>
-        </HTMLTable>
-      </div>
-    );
+      return (
+        <div style={{ paddingBottom: "16px" }}>
+          <Alert
+            isOpen={deleteEntry ? true : false}
+            icon="trash"
+            intent={Intent.DANGER}
+            cancelButtonText="Cancel"
+            confirmButtonText="Delete Forever"
+            onConfirm={() => {
+              this.setState({ deleteEntry: undefined });
+
+              console.info("delete", deleteEntry);
+
+              if (deleteEntry != null) {
+                onDelete(deleteEntry);
+              }
+            }}
+            onCancel={() => {
+              this.setState({ deleteEntry: undefined });
+            }}
+          >
+            <p>
+              Are you sure you want to delete{" "}
+              <b>{deleteEntry ? deleteEntry.name : "<unknown>"}</b> forever?
+            </p>
+          </Alert>
+
+          <HTMLTable
+            ref={this.tableRef}
+            bordered
+            condensed
+            interactive
+            striped
+            style={{ width: "100%", whiteSpace: "nowrap" }}
+          >
+            <thead>
+              <tr>
+                <th style={NameColumnStyle}>Name</th>
+                <th style={SizeColumnStyle}>Size</th>
+              </tr>
+            </thead>
+            <tbody>{sortedEntriesElements}</tbody>
+          </HTMLTable>
+        </div>
+      );
+    });
   }
 }
