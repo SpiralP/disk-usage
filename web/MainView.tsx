@@ -1,5 +1,4 @@
 import React from "react";
-import EventEmitter from "events";
 import FolderView from "./FolderView";
 import { Breadcrumbs, Divider, Text } from "@blueprintjs/core";
 import { bytes } from "./helpers";

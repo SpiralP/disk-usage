@@ -1,31 +1,58 @@
 import React from "react";
-import WebSocketConnection from "./WebSocketConnection";
 import MainView from "./MainView";
 
-interface AppState {
-  ws: WebSocket | null;
+interface AppProps {
+  path: string;
 }
 
-export default class App extends React.Component<{}, AppState> {
-  state: AppState = { ws: null };
+type AppState =
+  | {
+      state: "connecting";
+    }
+  | {
+      state: "closed";
+    }
+  | {
+      state: "open";
+      ws: WebSocket;
+    };
+
+export default class App extends React.Component<AppProps, AppState> {
+  state: AppState = { state: "connecting" };
+
+  componentDidMount() {
+    const { path } = this.props;
+
+    const ws = new WebSocket(`ws://${location.host}/${path}`);
+
+    ws.onopen = () => {
+      this.setState({ state: "open", ws });
+    };
+
+    ws.onerror = () => {};
+
+    ws.onclose = () => {
+      this.setState({ state: "closed" });
+    };
+
+    ws.onmessage = () => {};
+  }
 
   render() {
-    const { ws } = this.state;
+    const { state } = this.state;
 
-    return (
-      <div>
-        <WebSocketConnection
-          path="ws"
-          onOpen={(ws) => {
-            this.setState({ ws });
-          }}
-          onClose={() => {
-            this.setState({ ws: null });
-          }}
-        />
-
-        {ws ? <MainView ws={ws} /> : null}
-      </div>
-    );
+    if (this.state.state === "open") {
+      return <MainView ws={this.state.ws} />;
+    } else {
+      return (
+        <h1>
+          {state === "connecting"
+            ? "connecting"
+            : state === "closed"
+            ? "closed"
+            : null}
+        </h1>
+      );
+    }
   }
 }
