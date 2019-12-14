@@ -4,41 +4,50 @@ import FolderView from "./FolderView";
 import { Breadcrumbs, Divider, Text } from "@blueprintjs/core";
 import { bytes } from "./helpers";
 
-interface FileSizeWorkerProps {
-  emitter: EventEmitter;
+interface MainViewProps {
+  ws: WebSocket;
 }
 
-interface FileSizeWorkerState {
+interface MainViewState {
   path: Array<string>;
   entries: Array<Entry>;
   free: number;
 }
 
-export default class FileSizeWorker extends React.Component<
-  FileSizeWorkerProps,
-  FileSizeWorkerState
+export default class MainView extends React.Component<
+  MainViewProps,
+  MainViewState
 > {
-  state: FileSizeWorkerState = { path: [], entries: [], free: 0 };
+  state: MainViewState = { path: [], entries: [], free: 0 };
 
   componentDidMount() {
-    const { emitter } = this.props;
-    emitter.on("receive", this.receiver);
-
-    // @ts-ignore
-    global.ag = emitter;
+    const { ws } = this.props;
+    ws.addEventListener("message", this.onMessage);
   }
 
   componentWillUnmount() {
-    const { emitter } = this.props;
-    emitter.off("receive", this.receiver);
+    const { ws } = this.props;
+    ws.removeEventListener("message", this.onMessage);
   }
 
   send(msg: ControlMessage) {
-    const { emitter } = this.props;
-    emitter.emit("send", JSON.stringify(msg));
+    const { ws } = this.props;
+    ws.send(JSON.stringify(msg));
   }
 
-  receiver = (data: EventMessage) => {
+  onMessage = (event: MessageEvent) => {
+    const { data } = event;
+
+    // if (typeof data === "string") {
+    const parsed = JSON.parse(data);
+    // } else if (data instanceof ArrayBuffer) {
+    // const parsed = messagePack.decode(Buffer.from(data));
+    // }
+
+    this.receive(parsed);
+  };
+
+  receive(data: EventMessage) {
     if (data.type === "directoryChange") {
       const { path, entries, free } = data;
       this.setState({
@@ -58,7 +67,7 @@ export default class FileSizeWorker extends React.Component<
         }),
       });
     }
-  };
+  }
 
   render() {
     const { path, entries, free } = this.state;

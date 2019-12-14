@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "parcel web/index.html",
     "build": "parcel build --no-source-maps web/index.html",
+    "build-debug": "env NODE_ENV=development parcel build --no-minify web/index.html",
     "watch": "parcel watch web/index.html"
   },
   "devDependencies": {
