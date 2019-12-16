@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use crate::websocket_handler::worker::walker::*;
 use std::{collections::HashMap, path::Path};
 
 // TODO make get_total_size cache!
@@ -8,13 +9,21 @@ use std::{collections::HashMap, path::Path};
 
 #[derive(Debug)]
 pub struct Directory {
+  pub updating: bool,
   pub total_size: u64,
   entries: HashMap<String, Directory>,
+}
+
+impl Default for Directory {
+  fn default() -> Self {
+    Self::new()
+  }
 }
 
 impl Directory {
   pub fn new() -> Self {
     Self {
+      updating: true,
       total_size: 0,
       entries: HashMap::new(),
     }
@@ -29,18 +38,52 @@ impl Directory {
     Some(current)
   }
 
-  pub fn insert_file(&mut self, components: &[String], size: u64) {
+  fn set_updating(&mut self, components: &[String], updating: bool) {
     let mut current = self;
-    current.total_size += size;
-
-    // remove filename
-    for component in components.iter().take(components.len() - 1) {
+    for component in components {
       current = current
         .entries
-        .entry(component.to_owned())
+        .entry(component.clone())
         .or_insert_with(Self::new);
+    }
+
+    current.updating = updating;
+  }
+
+  fn add_file(&mut self, components: &[String], size: u64) {
+    // <root>/hello/world/
+
+    let mut current = self;
+    // root tree total_size += size
+    current.total_size += size;
+
+    // update 'hello' then 'world'
+    for component in components {
+      // this unwrap is ok because we do set_updating ALWAYS before add_file
+      current = current.entries.get_mut(component).unwrap();
 
       current.total_size += size;
+    }
+  }
+
+  pub fn update(&mut self, file_type: &FileType) {
+    match file_type {
+      FileType::Dir(path, status) => {
+        let components = get_components(&path);
+        let updating = if let DirStatus::Started = status {
+          true
+        } else {
+          false
+        };
+
+        self.set_updating(&components, updating);
+      }
+
+      FileType::File(FileSize(path, size)) => {
+        let components = get_components(&path);
+        // remove filename
+        self.add_file(&components[..components.len() - 1], *size);
+      }
     }
   }
 }
@@ -53,23 +96,15 @@ pub fn get_components<B: AsRef<Path>>(path: B) -> Vec<String> {
     .collect()
 }
 
-#[tokio::test]
-async fn test_tree() {
+#[test]
+fn test_tree() {
   use super::walker::*;
-  use futures::prelude::*;
 
   let mut t = Directory::new();
 
-  let mut file_size_stream = futures::stream::iter(walk("src".parse().unwrap()));
-  while let Some(file_type) = file_size_stream.next().await {
-    if let FileType::File(FileSize(path, size)) = file_type {
-      println!("{:?}", path);
-
-      let components = get_components(path);
-      t.insert_file(&components, size);
-    }
+  let file_size_stream = walk("src".parse().unwrap());
+  for file_type in file_size_stream {
+    t.update(&file_type);
+    println!("{:?} {:#?}", file_type, t);
   }
-
-  println!("{:#?}", t);
-  println!("{}", t.total_size);
 }

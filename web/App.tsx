@@ -1,8 +1,10 @@
 import React from "react";
 import MainView from "./MainView";
+import { IToaster } from "@blueprintjs/core";
 
 interface AppProps {
   path: string;
+  toaster: IToaster;
 }
 
 type AppState =
@@ -32,7 +34,12 @@ export default class App extends React.Component<AppProps, AppState> {
     ws.onerror = () => {};
 
     ws.onclose = () => {
-      this.setState({ state: "closed" });
+      // this.setState({ state: "closed" });
+      this.props.toaster.show({
+        message: "websocket closed",
+        intent: "danger",
+        timeout: 10000,
+      });
     };
 
     ws.onmessage = () => {};

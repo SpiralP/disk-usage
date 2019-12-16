@@ -143,6 +143,7 @@ pub enum EventMessage {
   },
 
   SizeUpdate {
+    /// always Entry::Directory
     entry: Entry,
   },
 }
@@ -176,57 +177,75 @@ fn spawn_size_update_stream(
 
         EventMessage::SizeUpdate { entry } => {
           // push to sums, send size update message every interval
-          let (name, size) = match entry {
-            Entry::Directory { name, size } | Entry::File { name, size } => (name.clone(), *size),
+          let (name, size, updating) = match entry {
+            Entry::File { .. } => unreachable!(),
+            Entry::Directory {
+              name,
+              size,
+              updating,
+            } => (name.clone(), *size, *updating),
           };
 
-          sums_mutex
-            .lock()
-            .await
-            .entry(name.clone())
-            .and_modify(|(old_size, _remote_handle)| {
-              // always modify size
-              *old_size = size;
-            })
-            .or_insert_with(|| {
-              // if no entry then start timer
-              let sums_mutex_weak = sums_mutex_weak.clone();
-              let mut event_sender = event_sender.clone();
+          if updating && size != 0 {
+            // If it's not a start/finish message,
+            // we update slowly
 
-              let (fut, remote_handle) = async move {
-                tokio::timer::delay_for(Duration::from_millis(UPDATE_INTERVAL)).await;
+            sums_mutex
+              .lock()
+              .await
+              .entry(name.clone())
+              .and_modify(|(old_size, _remote_handle)| {
+                // always modify size
+                *old_size = size;
+              })
+              .or_insert_with(|| {
+                // if no entry then start timer
+                let sums_mutex_weak = sums_mutex_weak.clone();
+                let mut event_sender = event_sender.clone();
 
-                // this upgrade shouldn't fail because when spawn_size_update_stream's remote handle is dropped,
-                // the only true reference to sums_mutex will be dropped,
-                // causing this timer future to be dropped and stop running
-                let sums_mutex = sums_mutex_weak
-                  .upgrade()
-                  .expect("sums_mutex_weak.upgrade shouldn't happen??");
-                let mut sums = sums_mutex.lock().await;
-                let (size, my_remote_handle) = sums.remove(&name).unwrap();
+                let (fut, remote_handle) = async move {
+                  tokio::timer::delay_for(Duration::from_millis(UPDATE_INTERVAL)).await;
 
-                if let Err(e) = event_sender
-                  .send(EventMessage::SizeUpdate {
-                    entry: Entry::Directory {
-                      name: name.clone(),
-                      size,
-                    },
-                  })
-                  .await
-                {
-                  warn!("timer size_update: {}", e);
+                  // this upgrade shouldn't fail because when spawn_size_update_stream's remote handle is dropped,
+                  // the only true reference to sums_mutex will be dropped,
+                  // causing this timer future to be dropped and stop running
+                  let sums_mutex = sums_mutex_weak
+                    .upgrade()
+                    .expect("sums_mutex_weak.upgrade shouldn't happen??");
+                  let mut sums = sums_mutex.lock().await;
+                  let (size, my_remote_handle) = sums.remove(&name).unwrap();
+
+                  if let Err(e) = event_sender
+                    .send(EventMessage::SizeUpdate {
+                      entry: Entry::Directory {
+                        name: name.clone(),
+                        size,
+                        updating,
+                      },
+                    })
+                    .await
+                  {
+                    warn!("timer size_update: {}", e);
+                  }
+
+                  drop(my_remote_handle);
                 }
+                .remote_handle();
+                // we will drop remote_handle (and stop the timer) on dir change "sums.clear()"
+                tokio::spawn(fut);
 
-                drop(my_remote_handle);
-              }
-              .remote_handle();
-              // we will drop remote_handle (and stop the timer) on dir change "sums.clear()"
-              tokio::spawn(fut);
+                (size, remote_handle)
+              });
 
-              (size, remote_handle)
-            });
+            // don't send this message
+            continue;
+          } else {
+            // TODO 0 size folders spam because 0 size and updating: true
+            // most probably aren't 0 tho
 
-          continue;
+            // remove timer so we don't undo our updating: false
+            sums_mutex.lock().await.remove(&name);
+          }
         }
       }
 

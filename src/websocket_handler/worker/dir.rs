@@ -7,8 +7,15 @@ use std::{fs, path::*};
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 pub enum Entry {
-  File { name: String, size: u64 },
-  Directory { name: String, size: u64 },
+  File {
+    name: String,
+    size: u64,
+  },
+  Directory {
+    name: String,
+    size: u64,
+    updating: bool,
+  },
 }
 
 pub fn get_directory_entries(
@@ -44,9 +51,15 @@ pub fn get_directory_entries(
             .to_owned(),
         );
 
-        let size = tree.at_mut(&relative_path).map_or(0, |dir| dir.total_size);
+        let (size, updating) = tree
+          .at_mut(&relative_path)
+          .map_or((0, true), |entry| (entry.total_size, entry.updating));
 
-        Entry::Directory { name, size }
+        Entry::Directory {
+          name,
+          size,
+          updating,
+        }
       } else {
         let metadata = entry.metadata().expect("metadata");
         let size = metadata.len();

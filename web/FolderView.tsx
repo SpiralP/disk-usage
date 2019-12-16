@@ -7,6 +7,7 @@ import {
   Intent,
   Alert,
   MenuItem,
+  Spinner,
 } from "@blueprintjs/core";
 import { bytes, time } from "./helpers";
 import ReactDOM from "react-dom";
@@ -90,12 +91,25 @@ class EntryRow extends React.Component<
       >
         <td style={NameColumnStyle}>
           <ProgressBar value={entry.size / totalSize}>
-            <Icon
-              iconSize={20}
-              intent="primary"
-              icon={entry.type === "directory" ? "folder-close" : "document"}
-              style={{ paddingRight: "10px" }}
-            />
+            <div
+              style={{
+                paddingRight: "10px",
+                display: "inline-block",
+                verticalAlign: "text-bottom",
+              }}
+            >
+              {entry.type === "directory" && entry.updating ? (
+                <Spinner size={20} intent="primary" tagName="stop" />
+              ) : (
+                <Icon
+                  iconSize={20}
+                  intent="primary"
+                  icon={
+                    entry.type === "directory" ? "folder-close" : "document"
+                  }
+                />
+              )}
+            </div>
             {entry.name}
           </ProgressBar>
         </td>

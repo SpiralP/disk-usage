@@ -3,5 +3,10 @@ import "@blueprintjs/core/lib/css/blueprint.css";
 import React from "react";
 import ReactDOM from "react-dom";
 import App from "./App";
+import { Toaster } from "@blueprintjs/core";
 
-ReactDOM.render(<App path="ws" />, document.getElementById("root"));
+const toaster = Toaster.create({ position: "top-right" });
+ReactDOM.render(
+  <App path="ws" toaster={toaster} />,
+  document.getElementById("root")
+);

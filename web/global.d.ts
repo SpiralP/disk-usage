@@ -8,6 +8,7 @@ interface EntryDirectory {
   type: "directory";
   name: string;
   size: number;
+  updating: boolean;
 }
 
 declare type Entry = EntryFile | EntryDirectory;
@@ -21,8 +22,7 @@ interface EventMessageDirectoryChange {
 
 interface EventMessageSizeUpdate {
   type: "sizeUpdate";
-  entry: Entry;
-  // final: boolean; // TODO
+  entry: EntryDirectory;
 }
 
 declare type EventMessage =
