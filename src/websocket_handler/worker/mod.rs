@@ -77,7 +77,7 @@ pub async fn spawn_scanner_stream(
       }
     }
 
-    let file_size_stream = walk(root_path.iter().collect()).await;
+    let file_size_stream = futures::stream::iter(walk(root_path.iter().collect()));
 
     let mut either_stream = stream::select(
       control_receiver
@@ -92,50 +92,60 @@ pub async fn spawn_scanner_stream(
 
     while let Some(either) = either_stream.next().await {
       match either {
-        Either::Left(control_message) => {
-          if let Some(ScannerControlMessage::ChangeDirectory(path)) = control_message {
+        Either::Left(None) => {
+          break;
+        }
+
+        Either::Left(Some(control_message)) => match control_message {
+          ScannerControlMessage::ChangeDirectory(path) => {
             subscribed_dirs =
               send_directory_change(&root_path, &path, &mut tree, &mut event_sender).await;
             current_dir = path;
-          } else {
-            break;
           }
+        },
+
+        Either::Right(None) => {
+          let end_time = Instant::now();
+          info!("scanner done! {:?}", end_time - start_time);
         }
 
-        Either::Right(file_size_message) => {
-          if let Some(FileSize(path, size)) = file_size_message {
-            let components = get_components(path);
-            tree.insert_file(&components, size);
+        Either::Right(Some(file_type)) => {
+          match file_type {
+            FileType::File(FileSize(path, size)) => {
+              let components = get_components(path);
+              tree.insert_file(&components, size);
 
-            if !components.starts_with(&current_dir) {
-              // new file is not in current directory
-              continue;
+              if !components.starts_with(&current_dir) {
+                // new file is not in current directory
+                continue;
+              }
+
+              let relative_name = &components[current_dir.len()];
+              if !subscribed_dirs.contains(relative_name) {
+                continue;
+              }
+
+              let size = tree
+                .at_mut(&components[..=current_dir.len()])
+                .expect("tree.at")
+                .total_size;
+
+              if let Err(e) = event_sender
+                .send(EventMessage::SizeUpdate {
+                  entry: Entry::Directory {
+                    name: relative_name.clone(),
+                    size,
+                  },
+                })
+                .await
+              {
+                warn!("scanner to event_sender: {}", e);
+              }
             }
 
-            let relative_name = &components[current_dir.len()];
-            if !subscribed_dirs.contains(relative_name) {
-              continue;
+            FileType::Dir(path, status) => {
+              println!("{:?} {:?}", status, path);
             }
-
-            let size = tree
-              .at_mut(&components[..=current_dir.len()])
-              .expect("tree.at")
-              .total_size;
-
-            if let Err(e) = event_sender
-              .send(EventMessage::SizeUpdate {
-                entry: Entry::Directory {
-                  name: relative_name.clone(),
-                  size,
-                },
-              })
-              .await
-            {
-              warn!("scanner to event_sender: {}", e);
-            }
-          } else {
-            let end_time = Instant::now();
-            info!("scanner done! {:?}", end_time - start_time);
           }
         }
       }

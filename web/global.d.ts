@@ -22,6 +22,7 @@ interface EventMessageDirectoryChange {
 interface EventMessageSizeUpdate {
   type: "sizeUpdate";
   entry: Entry;
+  // final: boolean; // TODO
 }
 
 declare type EventMessage =

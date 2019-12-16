@@ -45,6 +45,14 @@ impl Directory {
   }
 }
 
+pub fn get_components<B: AsRef<Path>>(path: B) -> Vec<String> {
+  path
+    .as_ref()
+    .iter()
+    .map(|os_str| os_str.to_string_lossy().to_string())
+    .collect()
+}
+
 #[tokio::test]
 async fn test_tree() {
   use super::walker::*;
@@ -52,22 +60,16 @@ async fn test_tree() {
 
   let mut t = Directory::new();
 
-  let mut file_size_stream = walk("src".parse().unwrap()).await;
-  while let Some(FileSize(path, size)) = file_size_stream.next().await {
-    println!("{:?}", path);
+  let mut file_size_stream = futures::stream::iter(walk("src".parse().unwrap()));
+  while let Some(file_type) = file_size_stream.next().await {
+    if let FileType::File(FileSize(path, size)) = file_type {
+      println!("{:?}", path);
 
-    let components = get_components(path);
-    t.insert_file(&components, size);
+      let components = get_components(path);
+      t.insert_file(&components, size);
+    }
   }
 
   println!("{:#?}", t);
   println!("{}", t.total_size);
-}
-
-pub fn get_components<B: AsRef<Path>>(path: B) -> Vec<String> {
-  path
-    .as_ref()
-    .iter()
-    .map(|os_str| os_str.to_string_lossy().to_string())
-    .collect()
 }

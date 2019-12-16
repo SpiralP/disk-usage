@@ -173,8 +173,6 @@ export default class FolderView extends React.Component<
     }
 
     if (this.isScrolledPastEnd()) {
-      console.log("scrolled past, giving more!");
-
       this.setState({
         numberOfShownEntries: numberOfShownEntries + 100,
       });
