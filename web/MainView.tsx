@@ -128,6 +128,9 @@ export default class MainView extends React.Component<
             onDelete={(entry) => {
               this.send({ type: "delete", path: [...path, entry.name] });
             }}
+            onReveal={(entry) => {
+              this.send({ type: "reveal", path: [...path, entry.name] });
+            }}
           />
 
           <div style={{ display: "flex" }}>

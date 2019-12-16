@@ -81,7 +81,6 @@ pub async fn spawn_scanner_stream(
         }
       }
 
-      info!("scanning {:?}", root_path);
       let file_size_stream = futures::stream::iter(walk(root_path.iter().collect()));
 
       let mut either_stream = stream::select(

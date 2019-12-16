@@ -61,15 +61,22 @@ class EntryRow extends React.Component<
   {
     entry: Entry;
     onDelete: () => void;
+    onReveal: () => void;
     onClick: () => void;
     totalSize: number;
   },
   {}
 > {
   public renderContextMenu() {
-    const { entry, onDelete } = this.props;
+    const { onDelete, onReveal } = this.props;
     return (
       <Menu>
+        <MenuItem
+          onClick={() => {
+            onReveal();
+          }}
+          text="Reveal"
+        />
         <MenuItem
           onClick={() => {
             onDelete();
@@ -128,6 +135,7 @@ interface FolderViewProps {
   entries: Array<Entry>;
   onChangeDirectory: (entry: Entry) => void;
   onDelete: (entry: Entry) => void;
+  onReveal: (entry: Entry) => void;
 }
 
 interface FolderViewState {
@@ -199,7 +207,7 @@ export default class FolderView extends React.Component<
 
   render() {
     return time("FolderView render", () => {
-      const { entries, onChangeDirectory, onDelete } = this.props;
+      const { entries, onChangeDirectory, onDelete, onReveal } = this.props;
       const { deleteEntry, numberOfShownEntries } = this.state;
 
       const totalSize = entries
@@ -237,13 +245,16 @@ export default class FolderView extends React.Component<
         <EntryRow
           key={i}
           entry={entry}
-          onDelete={() => {
-            this.setState({ deleteEntry: entry });
-          }}
           onClick={() => {
             if (entry.type === "directory") {
               onChangeDirectory(entry);
             }
+          }}
+          onDelete={() => {
+            this.setState({ deleteEntry: entry });
+          }}
+          onReveal={() => {
+            onReveal(entry);
           }}
           totalSize={totalSize}
         />

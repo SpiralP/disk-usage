@@ -1,4 +1,5 @@
 use jwalk::WalkDir;
+use log::*;
 use std::{
   path::PathBuf,
   sync::{Arc, Mutex},
@@ -20,6 +21,8 @@ pub enum FileType {
 }
 
 pub fn walk(root_path: PathBuf) -> impl Iterator<Item = FileType> {
+  info!("scanning {:?}", root_path);
+
   // Rc<RefCell<>> causes a compiler panic :(
   let current_dirs = Arc::new(Mutex::new(Vec::new()));
   let current_dirs2 = current_dirs.clone();

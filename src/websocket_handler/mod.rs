@@ -37,6 +37,14 @@ impl WebsocketHandler {
       ControlMessage::Delete { path } => {
         self.delete(path).await;
       }
+
+      ControlMessage::Reveal { path } => {
+        let full_path: PathBuf = self.root_path.iter().cloned().chain(path).collect();
+        debug!("Reveal {:?}", full_path);
+        if let Err(err) = reveal::that(&full_path) {
+          warn!("couldn't reveal path {:?}: {}", full_path, err);
+        }
+      }
     }
   }
 
@@ -154,6 +162,7 @@ pub enum EventMessage {
 enum ControlMessage {
   ChangeDirectory { path: Vec<String> },
   Delete { path: Vec<String> },
+  Reveal { path: Vec<String> },
 }
 
 const UPDATE_INTERVAL: u64 = 500;
