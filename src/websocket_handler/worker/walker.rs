@@ -35,7 +35,15 @@ pub fn walk(root_path: PathBuf) -> impl Iterator<Item = FileType> {
       let entry = maybe_entry.ok()?;
 
       let file_type = entry.file_type.as_ref().ok()?;
-      let path = entry.path().strip_prefix(&root_path).ok()?.to_path_buf();
+
+      // for inputs like "." or ".." or "/"
+      // the first entry.path() is "/"
+      let path = entry.path();
+      let path = if path.to_str().unwrap() == "/" {
+        PathBuf::new()
+      } else {
+        path.strip_prefix(&root_path).unwrap().to_path_buf()
+      };
 
       let mut out = Vec::new();
 

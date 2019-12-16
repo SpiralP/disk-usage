@@ -1,10 +1,11 @@
 import React from "react";
 import FolderView from "./FolderView";
-import { Breadcrumbs, Divider, Text } from "@blueprintjs/core";
+import { Breadcrumbs, Divider, Text, IToaster } from "@blueprintjs/core";
 import { bytes, time } from "./helpers";
 
 interface MainViewProps {
   ws: WebSocket;
+  toaster: IToaster;
 }
 
 interface MainViewState {
@@ -65,6 +66,18 @@ export default class MainView extends React.Component<
       });
     } else if (data.type === "sizeUpdate") {
       const { entry: newEntry } = data;
+      if (
+        newEntry.name === "" &&
+        newEntry.type === "directory" &&
+        !newEntry.updating
+      ) {
+        this.props.toaster.show({
+          message: "finished scanning",
+          intent: "success",
+          timeout: 3000,
+        });
+        return;
+      }
 
       this.setState({
         entries: this.state.entries.map((entry) => {

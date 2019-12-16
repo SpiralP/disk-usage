@@ -46,10 +46,11 @@ export default class App extends React.Component<AppProps, AppState> {
   }
 
   render() {
+    const { toaster } = this.props;
     const { state } = this.state;
 
     if (this.state.state === "open") {
-      return <MainView ws={this.state.ws} />;
+      return <MainView ws={this.state.ws} toaster={toaster} />;
     } else {
       // TODO maybe don't remove the MainView when closed!
       // but instead show a status message

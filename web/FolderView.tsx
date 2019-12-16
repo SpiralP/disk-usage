@@ -206,16 +206,20 @@ export default class FolderView extends React.Component<
         .map((entry) => entry.size)
         .reduce((last, current) => last + current, 0);
 
-      // sort by size
       const sortedEntries = entries
         .slice(0)
         .sort((left, right) => {
-          const a = left.size;
-          const b = right.size;
+          function isNotYetUpdated(a: Entry) {
+            return a.type === "directory" && a.updating && a.size === 0;
+          }
+
+          // show updating, 0 size directories first
+          if (isNotYetUpdated(left) && !isNotYetUpdated(right)) return -1;
+          if (!isNotYetUpdated(left) && isNotYetUpdated(right)) return 1;
 
           // greater first
-          if (a > b) return -1;
-          if (a < b) return 1;
+          if (left.size > right.size) return -1;
+          if (left.size < right.size) return 1;
 
           // show directories first
           if (left.type === "directory" && right.type === "file") return -1;

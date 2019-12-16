@@ -46,10 +46,12 @@ async fn send_directory_change(
   dirs
 }
 
+#[derive(Debug)]
 pub enum ScannerControlMessage {
   ChangeDirectory(Vec<String>),
 }
 
+#[allow(clippy::cognitive_complexity)]
 #[allow(clippy::too_many_lines)]
 pub async fn spawn_scanner_stream(
   root_path: Vec<String>,
@@ -79,6 +81,7 @@ pub async fn spawn_scanner_stream(
         }
       }
 
+      info!("scanning {:?}", root_path);
       let file_size_stream = futures::stream::iter(walk(root_path.iter().collect()));
 
       let mut either_stream = stream::select(
@@ -159,7 +162,23 @@ pub async fn spawn_scanner_stream(
 
                 let components = get_components(&path);
 
-                if components.starts_with(&current_dir) && components.len() == current_dir.len() + 1
+                if components.is_empty() {
+                  let size = tree.total_size;
+
+                  if let Err(e) = event_sender
+                    .send(EventMessage::SizeUpdate {
+                      entry: Entry::Directory {
+                        name: String::new(),
+                        size,
+                        updating,
+                      },
+                    })
+                    .await
+                  {
+                    warn!("scanner to event_sender: {}", e);
+                  }
+                } else if components.starts_with(&current_dir)
+                  && components.len() == current_dir.len() + 1
                 {
                   // Dir is in our current dir
                   // We don't care about recursion
