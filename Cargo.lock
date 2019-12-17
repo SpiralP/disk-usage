@@ -1146,7 +1146,7 @@ dependencies = [
 [[package]]
 name = "reveal"
 version = "0.1.0"
-source = "git+https://github.com/SpiralP/rust-reveal.git#4634e83a1140e6265e7d28e98463fe838bb0aedc"
+source = "git+https://github.com/SpiralP/rust-reveal.git#5bc08af75dcb4dcf73c1f0f2493fd890236ab677"
 dependencies = [
  "cfg-if 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "error-chain 0.12.1 (registry+https://github.com/rust-lang/crates.io-index)",
