@@ -1,22 +1,6 @@
-use super::{get_components, Directory};
+use super::{get_components, Directory, Entry};
 use fs2;
-use serde::Serialize;
 use std::{fs, path::*};
-
-#[derive(Debug, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-#[serde(tag = "type")]
-pub enum Entry {
-  File {
-    name: String,
-    size: u64,
-  },
-  Directory {
-    name: String,
-    size: u64,
-    updating: bool,
-  },
-}
 
 pub fn get_directory_entries(
   root_path: &[String],
@@ -36,35 +20,28 @@ pub fn get_directory_entries(
       let entry = maybe_entry.expect("maybe_entry");
 
       let path = entry.path();
-      let name = path
-        .file_name()
-        .expect("file_name")
-        .to_string_lossy()
-        .to_string();
+
       let file_type = entry.file_type().expect("file_type");
 
+      let relative_path = get_components(
+        path
+          .strip_prefix(&root_path)
+          .expect("strip_prefix")
+          .to_owned(),
+      );
+
       if file_type.is_dir() {
-        let relative_path = get_components(
-          path
-            .strip_prefix(&root_path)
-            .expect("strip_prefix")
-            .to_owned(),
-        );
-
-        let (size, updating) = tree
-          .at_mut(&relative_path)
-          .map_or((0, true), |entry| (entry.total_size, entry.updating));
-
-        Entry::Directory {
-          name,
-          size,
-          updating,
-        }
+        tree.get_entry_directory(relative_path)
       } else {
+        // TODO symlinks as own Entry
+
         let metadata = entry.metadata().expect("metadata");
         let size = metadata.len();
 
-        Entry::File { name, size }
+        Entry::File {
+          path: relative_path,
+          size,
+        }
       }
     })
     .collect();

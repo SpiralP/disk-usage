@@ -3,7 +3,7 @@ mod tree;
 mod walker;
 
 pub use self::{dir::*, tree::*, walker::*};
-use super::EventMessage;
+use super::api::*;
 use futures::{
   channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender},
   future::Either,
@@ -13,29 +13,46 @@ use futures::{
 use log::*;
 use std::{collections::HashSet, thread, time::Instant};
 
+// returns "subscribed dirs"
+// which are ones in current dir
+// and those leading up to current path for breadcrumb updates
 async fn send_directory_change(
   root_path: &[String],
   path: &[String],
   tree: &mut Directory,
   event_sender: &mut UnboundedSender<EventMessage>,
-) -> HashSet<String> {
+) -> HashSet<Vec<String>> {
   let (entries, free_space) = get_directory_entries(root_path, path, tree);
 
-  let dirs = entries
+  let mut subscribed_dirs: HashSet<Vec<String>> = entries
     .iter()
     .filter_map(move |entry| {
-      if let Entry::Directory { name, .. } = entry {
-        Some(name.to_owned())
+      if let Entry::Directory { path, .. } = entry {
+        Some(path.clone())
       } else {
         None
       }
     })
     .collect();
 
+  let mut cur = Vec::new();
+  let mut breadcrumb_entries = Vec::new();
+
+  // root tree
+  subscribed_dirs.insert(cur.to_vec());
+  breadcrumb_entries.push(tree.get_entry_directory(cur.to_vec()));
+
+  for component in path {
+    cur.push(component.to_string());
+    subscribed_dirs.insert(cur.to_vec());
+    breadcrumb_entries.push(tree.get_entry_directory(cur.to_vec()));
+  }
+
   if let Err(e) = event_sender
     .send(EventMessage::DirectoryChange {
-      path: path.to_owned(),
+      current_directory: tree.get_entry_directory(path.to_vec()),
       entries,
+      breadcrumb_entries,
       free: free_space,
     })
     .await
@@ -43,7 +60,7 @@ async fn send_directory_change(
     warn!("send_directory_change: {}", e);
   }
 
-  dirs
+  subscribed_dirs
 }
 
 #[derive(Debug)]
@@ -119,30 +136,29 @@ pub async fn spawn_scanner_stream(
 
             match file_type {
               FileType::File(FileSize(path, _)) => {
+                // send update for total size of shown directories
+
+                // [ (src), websocket_handler, worker, mod.rs ]
                 let components = get_components(&path);
 
+                // current_dir = src
+                // true
                 if components.starts_with(&current_dir) {
                   // file is in current directory
                   // This ignores higher directory changes
 
-                  let relative_name = &components[current_dir.len()];
-                  if subscribed_dirs.contains(relative_name) {
+                  let components = components[..=current_dir.len()].to_vec();
+                  // current_dir.len() = 1
+                  // [ ( (src), websocket_handler ), worker, mod.rs ]
+
+                  // [ websocket_handler, src ]
+                  if subscribed_dirs.contains(&components) {
                     // File is in a directory in the current dir.
                     // Update that directory's size.
-                    // This ignores file updates in the current dir
-
-                    let size = tree
-                      .at_mut(&components[..=current_dir.len()])
-                      .expect("tree.at")
-                      .total_size;
 
                     if let Err(e) = event_sender
                       .send(EventMessage::SizeUpdate {
-                        entry: Entry::Directory {
-                          name: relative_name.clone(),
-                          size,
-                          updating: true,
-                        },
+                        entry: tree.get_entry_directory(components),
                       })
                       .await
                     {
@@ -152,45 +168,15 @@ pub async fn spawn_scanner_stream(
                 }
               }
 
-              FileType::Dir(path, status) => {
-                let updating = if let DirStatus::Started = status {
-                  true
-                } else {
-                  false
-                };
-
+              FileType::Dir(path, _) => {
                 let components = get_components(&path);
-
-                if components.is_empty() {
-                  let size = tree.total_size;
-
-                  if let Err(e) = event_sender
-                    .send(EventMessage::SizeUpdate {
-                      entry: Entry::Directory {
-                        name: String::new(),
-                        size,
-                        updating,
-                      },
-                    })
-                    .await
-                  {
-                    warn!("scanner to event_sender: {}", e);
-                  }
-                } else if components.starts_with(&current_dir)
-                  && components.len() == current_dir.len() + 1
-                {
+                if subscribed_dirs.contains(&components) {
                   // Dir is in our current dir
                   // We don't care about recursion
-                  let relative_name = &components[current_dir.len()];
-                  let size = tree.at_mut(&components).map_or(0, |dir| dir.total_size);
 
                   if let Err(e) = event_sender
                     .send(EventMessage::SizeUpdate {
-                      entry: Entry::Directory {
-                        name: relative_name.clone(),
-                        size,
-                        updating,
-                      },
+                      entry: tree.get_entry_directory(components),
                     })
                     .await
                   {

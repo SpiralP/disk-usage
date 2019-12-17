@@ -1,22 +1,31 @@
+type Path = Array<string>;
+
+declare type Entry = EntryFile | EntryDirectory;
+
 interface EntryFile {
   type: "file";
-  name: string;
+  path: Path;
   size: number;
 }
 
 interface EntryDirectory {
   type: "directory";
-  name: string;
+  path: Path;
   size: number;
   updating: boolean;
 }
 
-declare type Entry = EntryFile | EntryDirectory;
+// Event Messages
+
+declare type EventMessage =
+  | EventMessageDirectoryChange
+  | EventMessageSizeUpdate;
 
 interface EventMessageDirectoryChange {
   type: "directoryChange";
-  path: Array<string>;
+  currentDirectory: EntryDirectory;
   entries: Array<Entry>;
+  breadcrumbEntries: Array<Entry>;
   free: number;
 }
 
@@ -25,28 +34,24 @@ interface EventMessageSizeUpdate {
   entry: EntryDirectory;
 }
 
-declare type EventMessage =
-  | EventMessageDirectoryChange
-  | EventMessageSizeUpdate;
-
 // Control Messages
-
-interface ControlMessageChangeDirectory {
-  type: "changeDirectory";
-  path: Array<string>;
-}
-
-interface ControlMessageDelete {
-  type: "delete";
-  path: Array<string>;
-}
-
-interface ControlMessageReveal {
-  type: "reveal";
-  path: Array<string>;
-}
 
 declare type ControlMessage =
   | ControlMessageChangeDirectory
   | ControlMessageDelete
   | ControlMessageReveal;
+
+interface ControlMessageChangeDirectory {
+  type: "changeDirectory";
+  path: Path;
+}
+
+interface ControlMessageDelete {
+  type: "delete";
+  path: Path;
+}
+
+interface ControlMessageReveal {
+  type: "reveal";
+  path: Path;
+}

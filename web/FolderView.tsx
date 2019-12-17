@@ -106,7 +106,7 @@ class EntryRow extends React.Component<
               }}
             >
               {entry.type === "directory" && entry.updating ? (
-                <Spinner size={20} intent="primary" tagName="stop" />
+                <Spinner size={20} intent="primary" />
               ) : (
                 <Icon
                   iconSize={20}
@@ -117,7 +117,7 @@ class EntryRow extends React.Component<
                 />
               )}
             </div>
-            {entry.name}
+            {entry.path[entry.path.length - 1]}
           </ProgressBar>
         </td>
         <td
@@ -234,8 +234,14 @@ export default class FolderView extends React.Component<
           if (left.type === "file" && right.type === "directory") return 1;
 
           // a-z
-          if (left.name < right.name) return -1;
-          if (left.name > right.name) return 1;
+          if (
+            left.path[left.path.length - 1] < right.path[right.path.length - 1]
+          )
+            return -1;
+          if (
+            left.path[left.path.length - 1] > right.path[right.path.length - 1]
+          )
+            return 1;
 
           return 0;
         })
@@ -283,7 +289,12 @@ export default class FolderView extends React.Component<
           >
             <p>
               Are you sure you want to delete{" "}
-              <b>{deleteEntry ? deleteEntry.name : "<unknown>"}</b> forever?
+              <b>
+                {deleteEntry
+                  ? deleteEntry.path[deleteEntry.path.length - 1]
+                  : "<unknown>"}
+              </b>{" "}
+              forever?
             </p>
           </Alert>
 

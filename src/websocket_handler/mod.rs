@@ -1,14 +1,14 @@
+mod api;
 mod worker;
 
-use self::worker::*;
-use crate::error::*;
+use self::{api::*, worker::*};
+use crate::{error::*, websocket_handler::api::ControlMessage};
 use futures::{
   channel::mpsc::{unbounded as unbounded_stream, UnboundedReceiver, UnboundedSender},
   lock::Mutex,
   prelude::*,
 };
 use log::*;
-use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, fs, path::PathBuf, sync::Arc, time::Duration};
 
 pub struct WebsocketHandler {
@@ -140,31 +140,6 @@ impl WebsocketHandler {
   }
 }
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(tag = "type")]
-pub enum EventMessage {
-  DirectoryChange {
-    path: Vec<String>,
-    entries: Vec<Entry>,
-    free: u64,
-  },
-
-  SizeUpdate {
-    /// always Entry::Directory
-    entry: Entry,
-  },
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(tag = "type")]
-enum ControlMessage {
-  ChangeDirectory { path: Vec<String> },
-  Delete { path: Vec<String> },
-  Reveal { path: Vec<String> },
-}
-
 const UPDATE_INTERVAL: u64 = 500;
 
 fn spawn_size_update_stream(
@@ -186,13 +161,13 @@ fn spawn_size_update_stream(
 
         EventMessage::SizeUpdate { entry } => {
           // push to sums, send size update message every interval
-          let (name, size, updating) = match entry {
+          let (path, size, updating) = match entry {
             Entry::File { .. } => unreachable!(),
             Entry::Directory {
-              name,
+              path,
               size,
               updating,
-            } => (name.clone(), *size, *updating),
+            } => (path.clone(), *size, *updating),
           };
 
           if updating && size != 0 {
@@ -202,7 +177,7 @@ fn spawn_size_update_stream(
             sums_mutex
               .lock()
               .await
-              .entry(name.clone())
+              .entry(path.clone())
               .and_modify(|(old_size, _remote_handle)| {
                 // always modify size
                 *old_size = size;
@@ -222,12 +197,12 @@ fn spawn_size_update_stream(
                     .upgrade()
                     .expect("sums_mutex_weak.upgrade shouldn't happen??");
                   let mut sums = sums_mutex.lock().await;
-                  let (size, my_remote_handle) = sums.remove(&name).unwrap();
+                  let (size, my_remote_handle) = sums.remove(&path).unwrap();
 
                   if let Err(e) = event_sender
                     .send(EventMessage::SizeUpdate {
                       entry: Entry::Directory {
-                        name: name.clone(),
+                        path: path.clone(),
                         size,
                         updating,
                       },
@@ -253,7 +228,7 @@ fn spawn_size_update_stream(
             // most probably aren't 0 tho
 
             // remove timer so we don't undo our updating: false
-            sums_mutex.lock().await.remove(&name);
+            sums_mutex.lock().await.remove(&path);
           }
         }
       }

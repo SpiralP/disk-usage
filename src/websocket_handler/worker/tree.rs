@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::websocket_handler::worker::walker::*;
+use crate::websocket_handler::{api::Entry, worker::walker::*};
 use std::{collections::HashMap, path::Path};
 
 // TODO make get_total_size cache!
@@ -84,6 +84,18 @@ impl Directory {
         // remove filename
         self.add_file(&components[..components.len() - 1], *size);
       }
+    }
+  }
+
+  pub fn get_entry_directory(&mut self, path: Vec<String>) -> Entry {
+    let (size, updating) = self
+      .at_mut(&path)
+      .map_or((0, true), |entry| (entry.total_size, entry.updating));
+
+    Entry::Directory {
+      path,
+      size,
+      updating,
     }
   }
 }

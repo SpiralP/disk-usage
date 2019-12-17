@@ -1,6 +1,14 @@
 import React from "react";
 import FolderView from "./FolderView";
-import { Breadcrumbs, Divider, Text, IToaster } from "@blueprintjs/core";
+import {
+  Breadcrumbs,
+  Divider,
+  Text,
+  IToaster,
+  Breadcrumb,
+  Icon,
+  Spinner,
+} from "@blueprintjs/core";
 import { bytes, time } from "./helpers";
 
 interface MainViewProps {
@@ -9,8 +17,9 @@ interface MainViewProps {
 }
 
 interface MainViewState {
-  path: Array<string>;
+  currentDirectory?: EntryDirectory;
   entries: Array<Entry>;
+  breadcrumbEntries: Array<Entry>;
   free: number;
 }
 
@@ -18,7 +27,12 @@ export default class MainView extends React.Component<
   MainViewProps,
   MainViewState
 > {
-  state: MainViewState = { path: [], entries: [], free: 0 };
+  state: MainViewState = {
+    currentDirectory: undefined,
+    entries: [],
+    breadcrumbEntries: [],
+    free: 0,
+  };
 
   componentDidMount() {
     const { ws } = this.props;
@@ -57,34 +71,42 @@ export default class MainView extends React.Component<
 
   receive(data: EventMessage) {
     if (data.type === "directoryChange") {
-      const { path, entries, free } = data;
+      const { currentDirectory, entries, breadcrumbEntries, free } = data;
 
       this.setState({
-        path,
+        currentDirectory,
         entries,
+        breadcrumbEntries,
         free,
       });
     } else if (data.type === "sizeUpdate") {
-      const { entry: newEntry } = data;
-      if (
-        newEntry.name === "" &&
-        newEntry.type === "directory" &&
-        !newEntry.updating
-      ) {
-        this.props.toaster.show({
-          message: "finished scanning",
-          intent: "success",
-          timeout: 3000,
-        });
-        return;
-      }
+      const { entry } = data;
+      // if (
+      //   entry.path.length === 0 &&
+      //   entry.type === "directory" &&
+      //   !entry.updating
+      // ) {
+      //   this.props.toaster.show({
+      //     message: "finished scanning",
+      //     intent: "success",
+      //     timeout: 3000,
+      //   });
+      //   return;
+      // }
 
       this.setState({
-        entries: this.state.entries.map((entry) => {
-          if (entry.name === newEntry.name) {
-            return { ...entry, ...newEntry };
-          } else {
+        entries: this.state.entries.map((oldEntry) => {
+          if (oldEntry.path.join("/") === entry.path.join("/")) {
             return entry;
+          } else {
+            return oldEntry;
+          }
+        }),
+        breadcrumbEntries: this.state.breadcrumbEntries.map((oldEntry) => {
+          if (oldEntry.path.join("/") === entry.path.join("/")) {
+            return entry;
+          } else {
+            return oldEntry;
           }
         }),
       });
@@ -93,7 +115,11 @@ export default class MainView extends React.Component<
 
   render() {
     return time("MainView render", () => {
-      const { path, entries, free } = this.state;
+      const { currentDirectory, entries, breadcrumbEntries, free } = this.state;
+
+      if (!currentDirectory || entries.length === 0) {
+        return <div> loading </div>;
+      }
 
       const totalSize = entries
         .map((entry) => entry.size)
@@ -103,33 +129,65 @@ export default class MainView extends React.Component<
         <div>
           <div style={{ paddingLeft: "16px" }}>
             <Breadcrumbs
-              items={["\u2022", ...path].map((name, i) => ({
-                text: name,
-                icon: "folder-close",
-                onClick: () => {
-                  this.send({
-                    type: "changeDirectory",
-                    path: path.slice(0, i),
-                  });
-                },
-              }))}
+              key={"Breadcrumbs-" + currentDirectory.path.join("/")}
+              items={["\u2022", ...currentDirectory.path].map((name, i) => {
+                const path = currentDirectory.path.slice(0, i);
+                return {
+                  path,
+                  text: name,
+                  onClick: () => {
+                    this.send({
+                      type: "changeDirectory",
+                      path,
+                    });
+                  },
+                };
+              })}
+              // @ts-ignore
+              breadcrumbRenderer={({ text, path, ...restProps }) => {
+                const entry = breadcrumbEntries.find((entry) => {
+                  return entry.path.join("/") === path.join("/");
+                });
+                if (!entry || entry.type !== "directory") {
+                  throw new Error("?");
+                }
+
+                return (
+                  <Breadcrumb {...restProps}>
+                    <div
+                      style={{
+                        paddingRight: "10px",
+                        display: "inline-block",
+                        verticalAlign: "text-bottom",
+                      }}
+                    >
+                      {entry.updating ? (
+                        <Spinner size={20} />
+                      ) : (
+                        <Icon iconSize={20} icon="folder-close" />
+                      )}
+                    </div>
+                    {text}
+                  </Breadcrumb>
+                );
+              }}
             />
           </div>
 
           <FolderView
-            key={path.join("/")}
+            key={"FolderView-" + currentDirectory.path.join("/")}
             entries={entries}
-            onChangeDirectory={(entry) => {
+            onChangeDirectory={({ path }) => {
               this.send({
                 type: "changeDirectory",
-                path: [...path, entry.name],
+                path,
               });
             }}
-            onDelete={(entry) => {
-              this.send({ type: "delete", path: [...path, entry.name] });
+            onDelete={({ path }) => {
+              this.send({ type: "delete", path });
             }}
-            onReveal={(entry) => {
-              this.send({ type: "reveal", path: [...path, entry.name] });
+            onReveal={({ path }) => {
+              this.send({ type: "reveal", path });
             }}
           />
 
