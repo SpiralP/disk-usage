@@ -12,7 +12,7 @@ interface EntryDirectory {
   type: "directory";
   path: Path;
   size: number;
-  updating: boolean;
+  updating: "idle" | "updating" | "finished";
 }
 
 // Event Messages

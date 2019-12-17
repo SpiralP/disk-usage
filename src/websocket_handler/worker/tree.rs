@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 
-use crate::websocket_handler::{api::Entry, worker::walker::*};
+use crate::websocket_handler::{
+  api::{Entry, UpdatingStatus},
+  worker::walker::*,
+};
 use std::{collections::HashMap, path::Path};
 
 // TODO make get_total_size cache!
@@ -9,7 +12,7 @@ use std::{collections::HashMap, path::Path};
 
 #[derive(Debug)]
 pub struct Directory {
-  pub updating: bool,
+  pub updating: UpdatingStatus,
   pub total_size: u64,
   entries: HashMap<String, Directory>,
 }
@@ -23,7 +26,7 @@ impl Default for Directory {
 impl Directory {
   pub fn new() -> Self {
     Self {
-      updating: true,
+      updating: UpdatingStatus::Idle,
       total_size: 0,
       entries: HashMap::new(),
     }
@@ -38,7 +41,7 @@ impl Directory {
     Some(current)
   }
 
-  fn set_updating(&mut self, components: &[String], updating: bool) {
+  fn set_updating(&mut self, components: &[String], updating: UpdatingStatus) {
     let mut current = self;
     for component in components {
       current = current
@@ -71,9 +74,9 @@ impl Directory {
       FileType::Dir(path, status) => {
         let components = get_components(&path);
         let updating = if let DirStatus::Started = status {
-          true
+          UpdatingStatus::Updating
         } else {
-          false
+          UpdatingStatus::Finished
         };
 
         self.set_updating(&components, updating);
@@ -90,7 +93,9 @@ impl Directory {
   pub fn get_entry_directory(&mut self, path: Vec<String>) -> Entry {
     let (size, updating) = self
       .at_mut(&path)
-      .map_or((0, true), |entry| (entry.total_size, entry.updating));
+      .map_or((0, UpdatingStatus::Idle), |entry| {
+        (entry.total_size, entry.updating)
+      });
 
     Entry::Directory {
       path,

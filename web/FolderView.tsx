@@ -105,16 +105,16 @@ class EntryRow extends React.Component<
                 verticalAlign: "text-bottom",
               }}
             >
-              {entry.type === "directory" && entry.updating ? (
-                <Spinner size={20} intent="primary" />
+              {entry.type === "directory" ? (
+                entry.updating === "idle" ? (
+                  <Spinner size={20} intent="none" />
+                ) : entry.updating === "updating" ? (
+                  <Spinner size={20} intent="success" />
+                ) : entry.updating === "finished" ? (
+                  <Icon iconSize={20} intent="primary" icon="folder-close" />
+                ) : null
               ) : (
-                <Icon
-                  iconSize={20}
-                  intent="primary"
-                  icon={
-                    entry.type === "directory" ? "folder-close" : "document"
-                  }
-                />
+                <Icon iconSize={20} intent="primary" icon="document" />
               )}
             </div>
             {entry.path[entry.path.length - 1]}
@@ -218,10 +218,10 @@ export default class FolderView extends React.Component<
         .slice(0)
         .sort((left, right) => {
           function isNotYetUpdated(a: Entry) {
-            return a.type === "directory" && a.updating && a.size === 0;
+            return a.type === "directory" && a.updating === "updating";
           }
 
-          // show updating, 0 size directories first
+          // show updating directories first
           if (isNotYetUpdated(left) && !isNotYetUpdated(right)) return -1;
           if (!isNotYetUpdated(left) && isNotYetUpdated(right)) return 1;
 

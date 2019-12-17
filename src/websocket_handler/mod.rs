@@ -170,7 +170,12 @@ fn spawn_size_update_stream(
             } => (path.clone(), *size, *updating),
           };
 
-          if updating && size != 0 {
+          let slow_update = match updating {
+            UpdatingStatus::Updating => size != 0,
+            _ => false,
+          };
+
+          if slow_update {
             // If it's not a start/finish message,
             // we update slowly
 

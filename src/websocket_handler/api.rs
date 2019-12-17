@@ -11,8 +11,16 @@ pub enum Entry {
   Directory {
     path: Vec<String>,
     size: u64,
-    updating: bool,
+    updating: UpdatingStatus,
   },
+}
+
+#[derive(Debug, Serialize, Clone, Copy)]
+#[serde(rename_all = "camelCase")]
+pub enum UpdatingStatus {
+  Idle,
+  Updating,
+  Finished,
 }
 
 #[derive(Debug, Serialize)]

@@ -161,11 +161,13 @@ export default class MainView extends React.Component<
                         verticalAlign: "text-bottom",
                       }}
                     >
-                      {entry.updating ? (
-                        <Spinner size={20} />
-                      ) : (
+                      {entry.updating === "idle" ? (
+                        <Spinner size={20} intent="none" />
+                      ) : entry.updating === "updating" ? (
+                        <Spinner size={20} intent="success" />
+                      ) : entry.updating === "finished" ? (
                         <Icon iconSize={20} icon="folder-close" />
-                      )}
+                      ) : null}
                     </div>
                     {text}
                   </Breadcrumb>
