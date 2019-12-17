@@ -45,7 +45,7 @@ async fn main() -> Result<()> {
 
   if !no_browser {
     tokio::spawn(async move {
-      tokio::timer::delay_for(Duration::from_millis(100)).await;
+      tokio::time::delay_for(Duration::from_millis(100)).await;
 
       if let Err(err) = open::that(format!("http://{}/", web_server_addr)) {
         warn!("couldn't open http link: {}", err);

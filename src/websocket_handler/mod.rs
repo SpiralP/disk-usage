@@ -9,7 +9,7 @@ use futures::{
   prelude::*,
 };
 use log::*;
-use std::{collections::HashMap, fs, path::PathBuf, sync::Arc, time::Duration};
+use std::{collections::HashMap, fs, path::PathBuf, sync::Arc, thread, time::Duration};
 
 pub struct WebsocketHandler {
   root_path: Vec<String>,
@@ -41,9 +41,12 @@ impl WebsocketHandler {
       ControlMessage::Reveal { path } => {
         let full_path: PathBuf = self.root_path.iter().cloned().chain(path).collect();
         debug!("Reveal {:?}", full_path);
-        if let Err(err) = reveal::that(&full_path) {
-          warn!("couldn't reveal path {:?}: {}", full_path, err);
-        }
+
+        thread::spawn(move || {
+          if let Err(err) = reveal::that(&full_path) {
+            warn!("couldn't reveal path {:?}: {}", full_path, err);
+          }
+        });
       }
     }
   }
@@ -193,7 +196,7 @@ fn spawn_size_update_stream(
                 let mut event_sender = event_sender.clone();
 
                 let (fut, remote_handle) = async move {
-                  tokio::timer::delay_for(Duration::from_millis(UPDATE_INTERVAL)).await;
+                  tokio::time::delay_for(Duration::from_millis(UPDATE_INTERVAL)).await;
 
                   // this upgrade shouldn't fail because when spawn_size_update_stream's remote handle is dropped,
                   // the only true reference to sums_mutex will be dropped,
