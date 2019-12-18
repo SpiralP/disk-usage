@@ -33,7 +33,7 @@ pub enum EventMessage {
     current_directory: Entry,
     entries: Vec<Entry>,
     breadcrumb_entries: Vec<Entry>,
-    free: u64,
+    available_space: u64,
   },
 
   SizeUpdate {

@@ -20,7 +20,7 @@ interface MainViewState {
   currentDirectory?: EntryDirectory;
   entries: Array<Entry>;
   breadcrumbEntries: Array<Entry>;
-  free: number;
+  availableSpace: number;
 }
 
 export default class MainView extends React.Component<
@@ -31,7 +31,7 @@ export default class MainView extends React.Component<
     currentDirectory: undefined,
     entries: [],
     breadcrumbEntries: [],
-    free: 0,
+    availableSpace: 0,
   };
 
   componentDidMount() {
@@ -71,13 +71,18 @@ export default class MainView extends React.Component<
 
   receive(data: EventMessage) {
     if (data.type === "directoryChange") {
-      const { currentDirectory, entries, breadcrumbEntries, free } = data;
+      const {
+        currentDirectory,
+        entries,
+        breadcrumbEntries,
+        availableSpace,
+      } = data;
 
       this.setState({
         currentDirectory,
         entries,
         breadcrumbEntries,
-        free,
+        availableSpace,
       });
     } else if (data.type === "sizeUpdate") {
       const { entry } = data;
@@ -115,7 +120,12 @@ export default class MainView extends React.Component<
 
   render() {
     return time("MainView render", () => {
-      const { currentDirectory, entries, breadcrumbEntries, free } = this.state;
+      const {
+        currentDirectory,
+        entries,
+        breadcrumbEntries,
+        availableSpace,
+      } = this.state;
 
       if (!currentDirectory || entries.length === 0) {
         return <div> loading </div>;
@@ -200,8 +210,8 @@ export default class MainView extends React.Component<
               {`Total size: ${bytes(totalSize)}`}
             </h4>
             <Divider />
-            <h4 title={`${free.toLocaleString()} bytes`}>
-              {`Free space: ${bytes(free)}`}
+            <h4 title={`${availableSpace.toLocaleString()} bytes`}>
+              {`Available space: ${bytes(availableSpace)}`}
             </h4>
           </div>
         </div>

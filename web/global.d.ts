@@ -26,7 +26,7 @@ interface EventMessageDirectoryChange {
   currentDirectory: EntryDirectory;
   entries: Array<Entry>;
   breadcrumbEntries: Array<Entry>;
-  free: number;
+  availableSpace: number;
 }
 
 interface EventMessageSizeUpdate {

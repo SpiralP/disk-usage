@@ -22,7 +22,7 @@ async fn send_directory_change(
   tree: &mut Directory,
   event_sender: &mut UnboundedSender<EventMessage>,
 ) -> HashSet<Vec<String>> {
-  let (entries, free_space) = get_directory_entries(root_path, path, tree);
+  let (entries, available_space) = get_directory_entries(root_path, path, tree);
 
   let mut subscribed_dirs: HashSet<Vec<String>> = entries
     .iter()
@@ -53,7 +53,7 @@ async fn send_directory_change(
       current_directory: tree.get_entry_directory(path.to_vec()),
       entries,
       breadcrumb_entries,
-      free: free_space,
+      available_space,
     })
     .await
   {
