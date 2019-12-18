@@ -46,7 +46,7 @@ pub fn get_directory_entries(
     })
     .collect();
 
-  let free_space = fs2::free_space(&full_path).unwrap();
+  let free_space = fs2::available_space(&full_path).unwrap();
 
   (entries, free_space)
 }
