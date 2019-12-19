@@ -16,16 +16,17 @@ pub async fn start(addr: SocketAddr, root_path: PathBuf, keep_open: bool) {
       let root_path = root_path.clone();
       let mut shutdown_sender = shutdown_sender.clone();
 
-      ws.on_upgrade(move |ws| {
-        async move {
-          debug!("websocket upgraded");
+      ws.on_upgrade(move |ws| async move {
+        debug!("websocket upgraded");
 
-          let mut handler = WebsocketHandler::new(&root_path);
-          handler.start(ws).await.unwrap();
+        {
+          WebsocketHandler::run(&root_path, ws).await;
+        }
 
-          if !keep_open {
-            shutdown_sender.send(()).await.unwrap();
-          }
+        info!("ws stopped");
+
+        if !keep_open {
+          shutdown_sender.send(()).await.unwrap();
         }
       })
     })

@@ -5,6 +5,8 @@ use self::{api::*, worker::*};
 use crate::{error::*, websocket_handler::api::ControlMessage};
 use futures::{
   channel::mpsc::{unbounded as unbounded_stream, UnboundedReceiver, UnboundedSender},
+  future,
+  future::Either,
   lock::Mutex,
   prelude::*,
 };
@@ -14,18 +16,11 @@ use std::{collections::HashMap, fs, path::PathBuf, sync::Arc, thread, time::Dura
 pub struct WebsocketHandler {
   root_path: Vec<String>,
   current_dir: Vec<String>,
-  thread_control_sender: Option<UnboundedSender<ScannerControlMessage>>,
+  thread_control_sender: UnboundedSender<ScannerControlMessage>,
+  event_sender: UnboundedSender<EventMessage>,
 }
 
 impl WebsocketHandler {
-  pub fn new(root_path: &PathBuf) -> Self {
-    Self {
-      root_path: get_components(root_path),
-      current_dir: Vec::new(),
-      thread_control_sender: None,
-    }
-  }
-
   async fn handle_message(&mut self, text: &str) {
     let control_message: ControlMessage = serde_json::from_str(text).unwrap();
 
@@ -35,7 +30,9 @@ impl WebsocketHandler {
       }
 
       ControlMessage::Delete { path } => {
-        self.delete(path).await;
+        if let Err(err) = self.delete(path.clone()).await {
+          warn!("couldn't delete path {:?}: {}", path, err);
+        }
       }
 
       ControlMessage::Reveal { path } => {
@@ -44,6 +41,7 @@ impl WebsocketHandler {
 
         thread::spawn(move || {
           if let Err(err) = reveal::that(&full_path) {
+            // TODO make these show in the browser
             warn!("couldn't reveal path {:?}: {}", full_path, err);
           }
         });
@@ -56,52 +54,121 @@ impl WebsocketHandler {
 
     self
       .thread_control_sender
-      .as_ref()
-      .unwrap()
       .send(ScannerControlMessage::ChangeDirectory(path))
       .await
       .unwrap();
   }
 
-  async fn delete(&mut self, path: Vec<String>) {
-    let full_path: PathBuf = self.root_path.iter().cloned().chain(path).collect();
+  async fn delete(&mut self, path: Vec<String>) -> Result<()> {
+    let full_path: PathBuf = self.root_path.iter().cloned().chain(path.clone()).collect();
     info!("delete {:?}", full_path);
 
-    let metadata = fs::metadata(&full_path).unwrap();
-    if metadata.is_dir() {
-      fs::remove_dir_all(full_path).unwrap();
-    } else {
-      fs::remove_file(full_path).unwrap();
+    // TODO should this just go in the js?
+    let (delay_future, delay_remote_handle) =
+      tokio::time::delay_for(std::time::Duration::from_secs(1)).remote_handle();
+    let either = future::select(
+      delay_future,
+      tokio::task::spawn_blocking(|| {
+        let metadata = fs::metadata(&full_path)?;
+        if metadata.is_dir() {
+          #[cfg(windows)]
+          remove_dir_all::remove_dir_all(full_path)?;
+
+          #[cfg(not(windows))]
+          fs::remove_dir_all(full_path)?;
+        } else {
+          fs::remove_file(full_path)?;
+        }
+
+        Ok::<_, std::io::Error>(())
+      }),
+    )
+    .await;
+
+    match either {
+      Either::Left((_, remove_future)) => {
+        // we're taking a long time, start notifying client
+
+        self
+          .send_event(EventMessage::Deleting {
+            path: path.clone(),
+            status: DeletingStatus::Deleting,
+          })
+          .await
+          .chain_err(|| "self.send_event()")
+          .unwrap();
+
+        remove_future
+          .await
+          .chain_err(|| "remove_future panic?")
+          .unwrap()?;
+      }
+
+      Either::Right((ret, _ignore_delay_future)) => {
+        // delete finished quickly, don't tell client anything
+
+        // stop timer
+        drop(delay_remote_handle);
+        ret.chain_err(|| "remove_future panic?").unwrap()?;
+      }
     }
 
+    // always tell the client we're done deleting
+    self
+      .send_event(EventMessage::Deleting {
+        path,
+        status: DeletingStatus::Finished,
+      })
+      .await
+      .unwrap();
+
     self.refresh().await;
+
+    Ok(())
   }
 
   async fn refresh(&mut self) {
     self.change_dir(self.current_dir.clone()).await;
   }
 
-  pub async fn start(&mut self, ws: warp::ws::WebSocket) -> Result<()> {
+  async fn send_event(&mut self, event: EventMessage) -> Result<()> {
+    self
+      .event_sender
+      .send(event)
+      .await
+      .chain_err(|| "event_sender.send()")?;
+
+    Ok(())
+  }
+
+  pub async fn run(root_path: &PathBuf, ws: warp::ws::WebSocket) {
     info!("ws started");
 
-    let (mut ws_sender, mut ws_receiver) = ws.split();
-
-    let (thread_control_sender, thread_control_receiver) = unbounded_stream();
-    self.thread_control_sender = Some(thread_control_sender);
+    let root_path = get_components(root_path);
 
     // scanner -> size_update -> ws_sender
 
-    let event_receiver =
-      spawn_scanner_stream(self.root_path.clone(), thread_control_receiver).await;
+    let (thread_control_sender, thread_control_receiver) = unbounded_stream();
 
-    let mut event_receiver = spawn_size_update_stream(event_receiver);
+    let event_receiver = spawn_scanner_stream(root_path.clone(), thread_control_receiver).await;
+
+    let (event_sender, mut event_receiver) = spawn_size_update_stream(event_receiver);
+
+    let (mut ws_sender, mut ws_receiver) = ws.split();
+
+    let mut handler = WebsocketHandler {
+      root_path,
+      current_dir: Vec::new(),
+      thread_control_sender,
+      event_sender,
+    };
 
     let ws_sender_future = async move {
       while let Some(event) = event_receiver.next().await {
         let s = serde_json::to_string(&event).unwrap();
         let message = warp::ws::Message::text(s);
         if let Err(e) = ws_sender.send(message).await {
-          warn!("ws_sender: {}", e);
+          warn!("ws_sender.send(): {}", e);
           break;
         }
       }
@@ -116,7 +183,7 @@ impl WebsocketHandler {
           Ok(message) => {
             if message.is_text() {
               let text = message.to_str().unwrap();
-              self.handle_message(text).await;
+              handler.handle_message(text).await;
             } else if message.is_close() {
               debug!("ws close");
               break;
@@ -136,10 +203,6 @@ impl WebsocketHandler {
 
     // race the websocket sender and receiver to determine close
     future::select(ws_sender_future, ws_receiver_future).await;
-
-    info!("ws stopped");
-
-    Ok(())
   }
 }
 
@@ -147,8 +210,13 @@ const UPDATE_INTERVAL: u64 = 500;
 
 fn spawn_size_update_stream(
   mut event_receiver: UnboundedReceiver<EventMessage>,
-) -> UnboundedReceiver<EventMessage> {
+) -> (
+  UnboundedSender<EventMessage>,
+  UnboundedReceiver<EventMessage>,
+) {
   let (mut event_sender, new_event_receiver) = unbounded_stream();
+
+  let new_event_sender = event_sender.clone();
 
   tokio::spawn(async move {
     #[allow(clippy::type_complexity)]
@@ -239,6 +307,8 @@ fn spawn_size_update_stream(
             sums_mutex.lock().await.remove(&path);
           }
         }
+
+        _ => {}
       }
 
       if let Err(e) = event_sender.send(event).await {
@@ -249,5 +319,5 @@ fn spawn_size_update_stream(
     debug!("size_update event_receiver completed");
   });
 
-  new_event_receiver
+  (new_event_sender, new_event_receiver)
 }

@@ -19,7 +19,8 @@ interface EntryDirectory {
 
 declare type EventMessage =
   | EventMessageDirectoryChange
-  | EventMessageSizeUpdate;
+  | EventMessageSizeUpdate
+  | EventMessageDeleting;
 
 interface EventMessageDirectoryChange {
   type: "directoryChange";
@@ -32,6 +33,12 @@ interface EventMessageDirectoryChange {
 interface EventMessageSizeUpdate {
   type: "sizeUpdate";
   entry: EntryDirectory;
+}
+
+interface EventMessageDeleting {
+  type: "deleting";
+  path: Path;
+  status: "deleting" | "finished";
 }
 
 // Control Messages

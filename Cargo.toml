@@ -19,3 +19,6 @@ serde = { version = "1.0.104", features = ["derive"] }
 serde_json = "1.0.44"
 tokio = { version = "0.2.4", features = ["blocking", "fs", "macros", "rt-threaded", "stream", "sync", "time"] }
 warp = { git = "https://github.com/seanmonstar/warp.git" }
+
+[target.'cfg(windows)'.dependencies]
+remove_dir_all = "0.5.2"

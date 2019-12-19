@@ -40,6 +40,18 @@ pub enum EventMessage {
     /// always Entry::Directory
     entry: Entry,
   },
+
+  Deleting {
+    path: Vec<String>,
+    status: DeletingStatus,
+  },
+}
+
+#[derive(Debug, Serialize, Clone, Copy)]
+#[serde(rename_all = "camelCase")]
+pub enum DeletingStatus {
+  Deleting,
+  Finished,
 }
 
 #[derive(Debug, Deserialize)]

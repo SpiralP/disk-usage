@@ -86,18 +86,6 @@ export default class MainView extends React.Component<
       });
     } else if (data.type === "sizeUpdate") {
       const { entry } = data;
-      // if (
-      //   entry.path.length === 0 &&
-      //   entry.type === "directory" &&
-      //   !entry.updating
-      // ) {
-      //   this.props.toaster.show({
-      //     message: "finished scanning",
-      //     intent: "success",
-      //     timeout: 3000,
-      //   });
-      //   return;
-      // }
 
       this.setState({
         entries: this.state.entries.map((oldEntry) => {
@@ -115,6 +103,29 @@ export default class MainView extends React.Component<
           }
         }),
       });
+    } else if (data.type === "deleting") {
+      const { toaster } = this.props;
+
+      const { path, status } = data;
+      const key = path.join("/");
+
+      if (status === "deleting") {
+        toaster.show(
+          {
+            message: `Deleting ${key}`,
+            intent: "primary",
+            timeout: 0,
+          },
+          key
+        );
+      } else if (status === "finished") {
+        toaster.dismiss(key);
+        toaster.show({
+          message: `Deleted ${key}`,
+          intent: "success",
+          timeout: 3000,
+        });
+      }
     }
   }
 
@@ -127,8 +138,8 @@ export default class MainView extends React.Component<
         availableSpace,
       } = this.state;
 
-      if (!currentDirectory || entries.length === 0) {
-        return <div> loading </div>;
+      if (!currentDirectory) {
+        return <div>loading</div>;
       }
 
       const totalSize = entries
