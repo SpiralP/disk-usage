@@ -13,7 +13,6 @@ use std::{
   path::PathBuf,
   time::Duration,
 };
-use tokio;
 
 #[tokio::main]
 async fn main() -> Result<()> {

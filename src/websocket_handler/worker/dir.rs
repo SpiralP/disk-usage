@@ -1,5 +1,4 @@
 use super::{get_components, Directory, Entry};
-use fs2;
 use std::{fs, path::*};
 
 pub fn get_directory_entries(
