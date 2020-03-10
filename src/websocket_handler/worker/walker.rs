@@ -1,5 +1,5 @@
 use jwalk::WalkDir;
-use log::{debug, info};
+use log::info;
 use std::{
   path::PathBuf,
   sync::{Arc, Mutex},
@@ -33,9 +33,7 @@ pub fn walk(root_path: PathBuf) -> impl Iterator<Item = FileType> {
     .sort(false)
     .into_iter()
     .filter_map(move |maybe_entry| {
-      debug!("locking1");
       let mut current_dirs = current_dirs.lock().unwrap();
-      debug!("locked1");
 
       let entry = maybe_entry.ok()?;
 
@@ -82,9 +80,7 @@ pub fn walk(root_path: PathBuf) -> impl Iterator<Item = FileType> {
     })
     .flatten()
     .chain(std::iter::from_fn(move || {
-      debug!("locking");
       let mut current_dirs = current_dirs2.lock().unwrap();
-      debug!("locked");
       current_dirs
         .pop()
         .map(move |dir| FileType::Dir(dir, DirStatus::Finished))
