@@ -53,6 +53,7 @@ pub fn get_directory_entries(
 // #[test]
 // fn test_get_directory_entries() {
 //   use super::FileSize;
+// crate::logger::initialize(true, false);
 
 //   let mut tree = Tree::new();
 

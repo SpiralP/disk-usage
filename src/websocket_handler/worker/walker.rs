@@ -89,6 +89,8 @@ pub fn walk(root_path: PathBuf) -> impl Iterator<Item = FileType> {
 
 #[test]
 fn test_walk() {
+  crate::logger::initialize(true, false);
+
   for item in walk("test-folder".parse().unwrap()) {
     if let FileType::Dir(..) = item {
       println!("{:?}", item);

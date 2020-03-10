@@ -117,6 +117,8 @@ pub fn get_components<B: AsRef<Path>>(path: B) -> Vec<String> {
 fn test_tree() {
   use super::walker::walk;
 
+  crate::logger::initialize(true, false);
+
   let mut t = Directory::new();
 
   let file_size_stream = walk("src".parse().unwrap());
