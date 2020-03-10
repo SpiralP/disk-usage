@@ -254,10 +254,13 @@ dependencies = [
  "error-chain 0.12.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "fs2 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "includedir 0.5.0 (git+https://github.com/SpiralP/includedir.git)",
  "jwalk 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "open 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "parceljs 0.1.0 (git+https://github.com/SpiralP/rust-parceljs.git)",
+ "parceljs 0.1.0 (git+https://github.com/SpiralP/rust-parceljs.git?branch=next)",
+ "parceljs-builder 0.1.0 (git+https://github.com/SpiralP/rust-parceljs.git?branch=next)",
+ "phf 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "remove_dir_all 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "reveal 0.1.0 (git+https://github.com/SpiralP/rust-reveal.git)",
  "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -827,13 +830,20 @@ dependencies = [
 [[package]]
 name = "parceljs"
 version = "0.1.0"
-source = "git+https://github.com/SpiralP/rust-parceljs.git#4b71ebf7d95bdbc4c2e09591fb002be4bcef5ad9"
+source = "git+https://github.com/SpiralP/rust-parceljs.git?branch=next#28463b153665d27ae5c855b6b9330b0fe3e67e6f"
 dependencies = [
  "includedir 0.5.0 (git+https://github.com/SpiralP/includedir.git)",
- "includedir_codegen 0.5.0 (git+https://github.com/SpiralP/includedir.git)",
  "phf 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "walkdir 2.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "warp 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "parceljs-builder"
+version = "0.1.0"
+source = "git+https://github.com/SpiralP/rust-parceljs.git?branch=next#28463b153665d27ae5c855b6b9330b0fe3e67e6f"
+dependencies = [
+ "includedir_codegen 0.5.0 (git+https://github.com/SpiralP/includedir.git)",
+ "walkdir 2.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1768,7 +1778,8 @@ dependencies = [
 "checksum num_cpus 1.12.0 (registry+https://github.com/rust-lang/crates.io-index)" = "46203554f085ff89c235cd12f7075f3233af9b11ed7c9e16dfe2560d03313ce6"
 "checksum opaque-debug 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "2839e79665f131bdb5782e51f2c6c9599c133c6098982a54c794358bf432529c"
 "checksum open 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7c283bf0114efea9e42f1a60edea9859e8c47528eae09d01df4b29c1e489cc48"
-"checksum parceljs 0.1.0 (git+https://github.com/SpiralP/rust-parceljs.git)" = "<none>"
+"checksum parceljs 0.1.0 (git+https://github.com/SpiralP/rust-parceljs.git?branch=next)" = "<none>"
+"checksum parceljs-builder 0.1.0 (git+https://github.com/SpiralP/rust-parceljs.git?branch=next)" = "<none>"
 "checksum percent-encoding 2.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
 "checksum phf 0.7.24 (registry+https://github.com/rust-lang/crates.io-index)" = "b3da44b85f8e8dfaec21adae67f95d93244b2ecf6ad2a692320598dcc8e6dd18"
 "checksum phf 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)" = "3dfb61232e34fcb633f43d12c58f83c1df82962dcdfa565a4e866ffc17dafe12"

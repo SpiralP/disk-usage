@@ -10,10 +10,12 @@ env_logger = "0.7.1"
 error-chain = "0.12.2"
 fs2 = "0.4.3"
 futures = "0.3.4"
+includedir = { git = "https://github.com/SpiralP/includedir.git" }
 jwalk = "0.4.0"
 log = "0.4.8"
 open = "1.4.0"
-parceljs = { git = "https://github.com/SpiralP/rust-parceljs.git", features = ["warp"] }
+parceljs = { git = "https://github.com/SpiralP/rust-parceljs.git", branch = "next", features = ["warp"] }
+phf = "0.8.0"
 reveal = { git = "https://github.com/SpiralP/rust-reveal.git" }
 serde = { version = "1.0.104", features = ["derive"] }
 serde_json = "1.0.48"
@@ -22,3 +24,6 @@ warp = "0.2.2"
 
 [target.'cfg(windows)'.dependencies]
 remove_dir_all = "0.5.2"
+
+[build-dependencies]
+parceljs-builder = { git = "https://github.com/SpiralP/rust-parceljs.git", branch = "next" }
