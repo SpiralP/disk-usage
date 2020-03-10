@@ -2,7 +2,7 @@
 
 use crate::websocket_handler::{
   api::{Entry, UpdatingStatus},
-  worker::walker::*,
+  worker::walker::{DirStatus, FileSize, FileType},
 };
 use std::{collections::HashMap, path::Path};
 
@@ -115,7 +115,7 @@ pub fn get_components<B: AsRef<Path>>(path: B) -> Vec<String> {
 
 #[test]
 fn test_tree() {
-  use super::walker::*;
+  use super::walker::walk;
 
   let mut t = Directory::new();
 

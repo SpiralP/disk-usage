@@ -5,7 +5,7 @@ mod logger;
 mod web_server;
 mod websocket_handler;
 
-use crate::error::*;
+use crate::error::Result;
 use clap::{clap_app, crate_name, crate_version};
 use log::warn;
 use std::{

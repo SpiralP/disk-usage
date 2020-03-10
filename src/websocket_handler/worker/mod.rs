@@ -3,14 +3,14 @@ mod tree;
 mod walker;
 
 pub use self::{dir::*, tree::*, walker::*};
-use super::api::*;
+use super::api::{Entry, EventMessage};
 use futures::{
   channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender},
   future::Either,
   prelude::*,
   stream,
 };
-use log::*;
+use log::{debug, info, warn};
 use std::{collections::HashSet, thread, time::Instant};
 
 // returns "subscribed dirs"

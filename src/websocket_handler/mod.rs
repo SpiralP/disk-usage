@@ -1,8 +1,14 @@
 mod api;
 mod worker;
 
-use self::{api::*, worker::*};
-use crate::{error::*, websocket_handler::api::ControlMessage};
+use self::{
+  api::{DeletingStatus, Entry, EventMessage, UpdatingStatus},
+  worker::{get_components, spawn_scanner_stream, ScannerControlMessage},
+};
+use crate::{
+  error::{Result, ResultExt},
+  websocket_handler::api::ControlMessage,
+};
 use futures::{
   channel::mpsc::{unbounded as unbounded_stream, UnboundedReceiver, UnboundedSender},
   future,
@@ -10,7 +16,7 @@ use futures::{
   lock::Mutex,
   prelude::*,
 };
-use log::*;
+use log::{debug, info, warn};
 use std::{collections::HashMap, fs, path::PathBuf, sync::Arc, thread, time::Duration};
 
 pub struct WebsocketHandler {

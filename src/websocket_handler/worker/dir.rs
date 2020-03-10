@@ -1,5 +1,5 @@
 use super::{get_components, Directory, Entry};
-use std::{fs, path::*};
+use std::{fs, path::PathBuf};
 
 pub fn get_directory_entries(
   root_path: &[String],

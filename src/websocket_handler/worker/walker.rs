@@ -1,5 +1,5 @@
 use jwalk::WalkDir;
-use log::*;
+use log::info;
 use std::{
   path::PathBuf,
   sync::{Arc, Mutex},
