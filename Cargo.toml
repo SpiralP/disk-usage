@@ -14,7 +14,7 @@ includedir = { git = "https://github.com/SpiralP/includedir.git" }
 jwalk = "0.4.0"
 log = "0.4.8"
 open = "1.4.0"
-parceljs = { git = "https://github.com/SpiralP/rust-parceljs.git", branch = "next", features = ["warp"] }
+parceljs = { git = "https://github.com/SpiralP/rust-parceljs.git", features = ["warp"] }
 phf = "0.8.0"
 reveal = { git = "https://github.com/SpiralP/rust-reveal.git" }
 serde = { version = "1.0.104", features = ["derive"] }
@@ -26,4 +26,4 @@ warp = "0.2.2"
 remove_dir_all = "0.5.2"
 
 [build-dependencies]
-parceljs-builder = { git = "https://github.com/SpiralP/rust-parceljs.git", branch = "next" }
+parceljs-builder = { git = "https://github.com/SpiralP/rust-parceljs.git" }
