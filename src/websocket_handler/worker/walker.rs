@@ -87,6 +87,7 @@ pub fn walk(root_path: PathBuf) -> impl Iterator<Item = FileType> {
     }))
 }
 
+#[ignore]
 #[test]
 fn test_walk() {
   crate::logger::initialize(true, false);

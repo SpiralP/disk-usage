@@ -113,6 +113,7 @@ pub fn get_components<B: AsRef<Path>>(path: B) -> Vec<String> {
     .collect()
 }
 
+#[ignore]
 #[test]
 fn test_tree() {
   use super::walker::walk;
