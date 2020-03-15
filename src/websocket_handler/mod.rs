@@ -5,10 +5,8 @@ use self::{
   api::{DeletingStatus, Entry, EventMessage, UpdatingStatus},
   worker::{get_components, spawn_scanner_stream, ScannerControlMessage},
 };
-use crate::{
-  error::{Result, ResultExt},
-  websocket_handler::api::ControlMessage,
-};
+use crate::websocket_handler::api::ControlMessage;
+use failure::{Error, ResultExt};
 use futures::{
   channel::mpsc::{unbounded as unbounded_stream, UnboundedReceiver, UnboundedSender},
   future,
@@ -65,7 +63,7 @@ impl WebsocketHandler {
       .unwrap();
   }
 
-  async fn delete(&mut self, path: Vec<String>) -> Result<()> {
+  async fn delete(&mut self, path: Vec<String>) -> Result<(), Error> {
     let full_path: PathBuf = self.root_path.iter().cloned().chain(path.clone()).collect();
     info!("delete {:?}", full_path);
 
@@ -101,12 +99,12 @@ impl WebsocketHandler {
             status: DeletingStatus::Deleting,
           })
           .await
-          .chain_err(|| "self.send_event()")
+          .with_context(|_| "self.send_event()")
           .unwrap();
 
         remove_future
           .await
-          .chain_err(|| "remove_future panic?")
+          .with_context(|_| "remove_future panic?")
           .unwrap()?;
       }
 
@@ -115,7 +113,7 @@ impl WebsocketHandler {
 
         // stop timer
         drop(delay_remote_handle);
-        ret.chain_err(|| "remove_future panic?").unwrap()?;
+        ret.with_context(|_| "remove_future panic?").unwrap()?;
       }
     }
 
@@ -137,12 +135,12 @@ impl WebsocketHandler {
     self.change_dir(self.current_dir.clone()).await;
   }
 
-  async fn send_event(&mut self, event: EventMessage) -> Result<()> {
+  async fn send_event(&mut self, event: EventMessage) -> Result<(), Error> {
     self
       .event_sender
       .send(event)
       .await
-      .chain_err(|| "event_sender.send()")?;
+      .with_context(|_| "event_sender.send()")?;
 
     Ok(())
   }
