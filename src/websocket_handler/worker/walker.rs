@@ -1,6 +1,7 @@
-use jwalk::WalkDir;
+use jwalk::WalkDirGeneric;
 use log::info;
 use std::{
+  fs::Metadata,
   path::PathBuf,
   sync::{Arc, Mutex},
 };
@@ -27,17 +28,23 @@ pub fn walk(root_path: PathBuf) -> impl Iterator<Item = FileType> {
   let current_dirs = Arc::new(Mutex::new(Vec::new()));
   let current_dirs2 = current_dirs.clone();
 
-  WalkDir::new(&root_path)
-    .preload_metadata(true)
+  WalkDirGeneric::<((), Option<Result<Metadata, jwalk::Error>>)>::new(&root_path)
     .skip_hidden(false)
     .sort(false)
+    .process_read_dir(|_, dir_entry_results| {
+      dir_entry_results.iter_mut().for_each(|dir_entry_result| {
+        if let Ok(dir_entry) = dir_entry_result {
+          dir_entry.client_state = Some(dir_entry.metadata());
+        }
+      })
+    })
     .into_iter()
     .filter_map(move |maybe_entry| {
       let mut current_dirs = current_dirs.lock().unwrap();
 
       let entry = maybe_entry.ok()?;
 
-      let file_type = entry.file_type.as_ref().ok()?;
+      let file_type = entry.file_type;
 
       // for inputs like "." or ".." or "/"
       // the first entry.path() is "/"
@@ -68,7 +75,7 @@ pub fn walk(root_path: PathBuf) -> impl Iterator<Item = FileType> {
         current_dirs.push(path.clone());
         out.push(FileType::Dir(path, DirStatus::Started))
       } else if file_type.is_file() {
-        let metadata = entry.metadata?.ok()?;
+        let metadata = entry.client_state.unwrap().ok()?;
         let len = metadata.len();
 
         out.push(FileType::File(FileSize(path, len)))
