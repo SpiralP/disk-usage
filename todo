@@ -12,9 +12,10 @@ Total disk usage:   3.7 MiB
 search?
 
 add a title of the current path
-
-allow multiple instances by +1 to the port
+- also change url with #
 
 refresh button
 
 "deleting" should be a spinner/loading bar!
+
+handle delete error

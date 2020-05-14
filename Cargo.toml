@@ -5,11 +5,11 @@ authors = ["SpiralP <spiral.palmer@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-clap = "2.33.0"
+clap = "2.33.1"
 env_logger = "0.7.1"
-failure = "0.1.7"
+failure = "0.1.8"
 fs2 = "0.4.3"
-futures = "0.3.4"
+futures = "0.3.5"
 includedir = { git = "https://github.com/SpiralP/includedir.git" }
 jwalk = "0.5.1"
 log = "0.4.8"
@@ -17,11 +17,12 @@ open = "1.4.0"
 parceljs = { git = "https://github.com/SpiralP/rust-parceljs.git", features = ["warp"] }
 phf = "0.8.0"
 reveal = { git = "https://github.com/SpiralP/rust-reveal.git" }
-serde = { version = "1.0.104", features = ["derive"] }
-serde_json = "1.0.48"
-tokio = { version = "0.2.13", features = ["full"] }
+serde = { version = "1.0.110", features = ["derive"] }
+serde_json = "1.0.53"
+tokio = { version = "0.2.21", features = ["full"] }
 # use release when they merge try_bind_with_graceful_shutdown
-warp = { git = "https://github.com/SpiralP/warp.git" }
+# https://github.com/seanmonstar/warp/pull/465
+warp = { git = "https://github.com/seanmonstar/warp.git" }
 
 [target.'cfg(windows)'.dependencies]
 remove_dir_all = "0.5.2"
@@ -29,6 +30,5 @@ remove_dir_all = "0.5.2"
 [build-dependencies]
 parceljs-builder = { git = "https://github.com/SpiralP/rust-parceljs.git" }
 
-
 [patch.crates-io]
-warp = { git = "https://github.com/SpiralP/warp.git" }
+warp = { git = "https://github.com/seanmonstar/warp.git" }

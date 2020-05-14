@@ -3,7 +3,7 @@ use failure::Error;
 use futures::{channel::mpsc, prelude::*};
 use log::{debug, info, warn};
 use std::{net::SocketAddr, path::PathBuf, time::Duration};
-use warp::{hyper, path::FullPath, Filter};
+use warp::{path::FullPath, Filter};
 
 include!(concat!(env!("OUT_DIR"), "/parceljs.rs"));
 
@@ -40,18 +40,14 @@ pub async fn start(
       }
 
       Err(err) => {
-        if err.inner.downcast_ref::<hyper::Error>().is_some() {
-          if tries > 4 {
-            return Err(err.into());
-          }
-          // else, loop
+        if tries <= 4 {
           tries += 1;
           let new_port = addr.port() + 1;
           warn!("{}, trying next port {}", err, new_port);
           addr.set_port(new_port);
-        } else {
-          return Err(err.into());
+          continue;
         }
+        return Err(err.into());
       }
     }
   }
