@@ -1,6 +1,5 @@
 use std::sync::Once;
 
-#[inline]
 pub fn initialize(debug: bool, other_crates: bool) {
   static START: Once = Once::new();
 
