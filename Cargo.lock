@@ -848,7 +848,7 @@ dependencies = [
 [[package]]
 name = "parceljs"
 version = "0.1.0"
-source = "git+https://github.com/SpiralP/rust-parceljs.git#1b563f2ec55637f71e100ce6d10d9d927664347c"
+source = "git+https://github.com/SpiralP/rust-parceljs.git#8708c200a91229f3d82f8cba720027d64ba4acab"
 dependencies = [
  "failure 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -859,7 +859,7 @@ dependencies = [
 [[package]]
 name = "parceljs-builder"
 version = "0.1.0"
-source = "git+https://github.com/SpiralP/rust-parceljs.git#1b563f2ec55637f71e100ce6d10d9d927664347c"
+source = "git+https://github.com/SpiralP/rust-parceljs.git#8708c200a91229f3d82f8cba720027d64ba4acab"
 dependencies = [
  "phf_codegen 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "walkdir 2.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
