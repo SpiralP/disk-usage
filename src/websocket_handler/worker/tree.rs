@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
 use crate::websocket_handler::{
-  api::{Entry, UpdatingStatus},
-  worker::walker::{DirStatus, FileSize, FileType},
+    api::{Entry, UpdatingStatus},
+    worker::walker::{DirStatus, FileSize, FileType},
 };
 use std::{collections::HashMap, path::Path};
 
@@ -12,119 +12,118 @@ use std::{collections::HashMap, path::Path};
 
 #[derive(Debug)]
 pub struct Directory {
-  pub updating: UpdatingStatus,
-  pub total_size: u64,
-  entries: HashMap<String, Directory>,
+    pub updating: UpdatingStatus,
+    pub total_size: u64,
+    entries: HashMap<String, Directory>,
 }
 
 impl Default for Directory {
-  fn default() -> Self {
-    Self::new()
-  }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Directory {
-  pub fn new() -> Self {
-    Self {
-      updating: UpdatingStatus::Idle,
-      total_size: 0,
-      entries: HashMap::new(),
-    }
-  }
-
-  pub fn at_mut(&mut self, components: &[String]) -> Option<&mut Self> {
-    let mut current = self;
-    for component in components {
-      current = current.entries.get_mut(component)?;
+    pub fn new() -> Self {
+        Self {
+            updating: UpdatingStatus::Idle,
+            total_size: 0,
+            entries: HashMap::new(),
+        }
     }
 
-    Some(current)
-  }
+    pub fn at_mut(&mut self, components: &[String]) -> Option<&mut Self> {
+        let mut current = self;
+        for component in components {
+            current = current.entries.get_mut(component)?;
+        }
 
-  fn set_updating(&mut self, components: &[String], updating: UpdatingStatus) {
-    let mut current = self;
-    for component in components {
-      current = current
-        .entries
-        .entry(component.clone())
-        .or_insert_with(Self::new);
+        Some(current)
     }
 
-    current.updating = updating;
-  }
+    fn set_updating(&mut self, components: &[String], updating: UpdatingStatus) {
+        let mut current = self;
+        for component in components {
+            current = current
+                .entries
+                .entry(component.clone())
+                .or_insert_with(Self::new);
+        }
 
-  fn add_file(&mut self, components: &[String], size: u64) {
-    // <root>/hello/world/
-
-    let mut current = self;
-    // root tree total_size += size
-    current.total_size += size;
-
-    // update 'hello' then 'world'
-    for component in components {
-      // this unwrap is ok because we do set_updating ALWAYS before add_file
-      current = current.entries.get_mut(component).unwrap();
-
-      current.total_size += size;
+        current.updating = updating;
     }
-  }
 
-  pub fn update(&mut self, file_type: &FileType) {
-    match file_type {
-      FileType::Dir(path, status) => {
-        let components = get_components(&path);
-        let updating = if let DirStatus::Started = status {
-          UpdatingStatus::Updating
-        } else {
-          UpdatingStatus::Finished
-        };
+    fn add_file(&mut self, components: &[String], size: u64) {
+        // <root>/hello/world/
 
-        self.set_updating(&components, updating);
-      }
+        let mut current = self;
+        // root tree total_size += size
+        current.total_size += size;
 
-      FileType::File(FileSize(path, size)) => {
-        let components = get_components(&path);
-        // remove filename
-        self.add_file(&components[..components.len() - 1], *size);
-      }
+        // update 'hello' then 'world'
+        for component in components {
+            // this unwrap is ok because we do set_updating ALWAYS before add_file
+            current = current.entries.get_mut(component).unwrap();
+
+            current.total_size += size;
+        }
     }
-  }
 
-  pub fn get_entry_directory(&mut self, path: Vec<String>) -> Entry {
-    let (size, updating) = self
-      .at_mut(&path)
-      .map_or((0, UpdatingStatus::Idle), |entry| {
-        (entry.total_size, entry.updating)
-      });
+    pub fn update(&mut self, file_type: &FileType) {
+        match file_type {
+            FileType::Dir(path, status) => {
+                let components = get_components(&path);
+                let updating = if let DirStatus::Started = status {
+                    UpdatingStatus::Updating
+                } else {
+                    UpdatingStatus::Finished
+                };
 
-    Entry::Directory {
-      path,
-      size,
-      updating,
+                self.set_updating(&components, updating);
+            }
+
+            FileType::File(FileSize(path, size)) => {
+                let components = get_components(&path);
+                // remove filename
+                self.add_file(&components[..components.len() - 1], *size);
+            }
+        }
     }
-  }
+
+    pub fn get_entry_directory(&mut self, path: Vec<String>) -> Entry {
+        let (size, updating) = self
+            .at_mut(&path)
+            .map_or((0, UpdatingStatus::Idle), |entry| {
+                (entry.total_size, entry.updating)
+            });
+
+        Entry::Directory {
+            path,
+            size,
+            updating,
+        }
+    }
 }
 
 pub fn get_components<B: AsRef<Path>>(path: B) -> Vec<String> {
-  path
-    .as_ref()
-    .iter()
-    .map(|os_str| os_str.to_string_lossy().to_string())
-    .collect()
+    path.as_ref()
+        .iter()
+        .map(|os_str| os_str.to_string_lossy().to_string())
+        .collect()
 }
 
 #[ignore]
 #[test]
 fn test_tree() {
-  use super::walker::walk;
+    use super::walker::walk;
 
-  crate::logger::initialize(true, false);
+    crate::logger::initialize(true, false);
 
-  let mut t = Directory::new();
+    let mut t = Directory::new();
 
-  let file_size_stream = walk("src".parse().unwrap());
-  for file_type in file_size_stream {
-    t.update(&file_type);
-    println!("{:?} {:#?}", file_type, t);
-  }
+    let file_size_stream = walk("src".parse().unwrap());
+    for file_type in file_size_stream {
+        t.update(&file_type);
+        println!("{:?} {:#?}", file_type, t);
+    }
 }

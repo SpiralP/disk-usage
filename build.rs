@@ -1,3 +1,3 @@
 fn main() {
-  parceljs_builder::build();
+    parceljs_builder::build();
 }
