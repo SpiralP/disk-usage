@@ -31,8 +31,8 @@ pub fn walk(root_path: PathBuf) -> impl Iterator<Item = FileType> {
     WalkDirGeneric::<((), Option<Result<Metadata, jwalk::Error>>)>::new(&root_path)
         .skip_hidden(false)
         .sort(false)
-        .process_read_dir(|_, dir_entry_results| {
-            dir_entry_results.iter_mut().for_each(|dir_entry_result| {
+        .process_read_dir(|_depth, _path, _read_dir_state, children| {
+            children.iter_mut().for_each(|dir_entry_result| {
                 if let Ok(dir_entry) = dir_entry_result {
                     dir_entry.client_state = Some(dir_entry.metadata());
                 }

@@ -8,6 +8,8 @@ import {
   Breadcrumb,
   Icon,
   Spinner,
+  ProgressBar,
+  Intent,
 } from "@blueprintjs/core";
 import { bytes, time } from "./helpers";
 
@@ -112,7 +114,14 @@ export default class MainView extends React.Component<
       if (status === "deleting") {
         toaster.show(
           {
-            message: `Deleting ${key}`,
+            icon: "cloud-upload",
+
+            message: (
+              <div>
+                {`Deleting ${key}`}
+                <ProgressBar intent={Intent.PRIMARY} value={0.25} />
+              </div>
+            ),
             intent: "primary",
             timeout: 0,
           },

@@ -68,7 +68,9 @@ impl WebsocketHandler {
 
         // TODO should this just go in the js?
         let (delay_future, delay_remote_handle) =
-            tokio::time::delay_for(std::time::Duration::from_secs(1)).remote_handle();
+            tokio::time::sleep(std::time::Duration::from_secs(1))
+                .boxed()
+                .remote_handle();
         let either = future::select(
             delay_future,
             tokio::task::spawn_blocking(|| {
@@ -264,7 +266,7 @@ fn spawn_size_update_stream(
                                 let mut event_sender = event_sender.clone();
 
                                 let (fut, remote_handle) = async move {
-                                    tokio::time::delay_for(Duration::from_millis(UPDATE_INTERVAL))
+                                    tokio::time::sleep(Duration::from_millis(UPDATE_INTERVAL))
                                         .await;
 
                                     // this upgrade shouldn't fail because when spawn_size_update_stream's remote handle is dropped,

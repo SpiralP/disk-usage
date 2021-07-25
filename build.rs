@@ -1,3 +1,7 @@
 fn main() {
-    parceljs_builder::build();
+    parceljs_builder::Builder {
+        yarn: true,
+        ..Default::default()
+    }
+    .build();
 }

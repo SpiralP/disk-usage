@@ -26,7 +26,7 @@ pub async fn start(
 
                 if !no_browser {
                     tokio::spawn(async move {
-                        tokio::time::delay_for(Duration::from_millis(100)).await;
+                        tokio::time::sleep(Duration::from_millis(100)).await;
 
                         if let Err(err) = open::that(format!("http://{}/", addr)) {
                             warn!("couldn't open http link: {}", err);
