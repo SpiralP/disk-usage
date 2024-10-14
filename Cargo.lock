@@ -324,7 +324,7 @@ dependencies = [
  "parceljs",
  "parceljs-builder",
  "phf",
- "remove_dir_all 0.8.3",
+ "remove_dir_all 0.8.4",
  "reveal",
  "serde",
  "serde_json",
@@ -1153,16 +1153,16 @@ dependencies = [
 
 [[package]]
 name = "remove_dir_all"
-version = "0.8.3"
+version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c914caef075f03e9d5c568e2e71b3d3cf17dc61a5481ff379bb744721be0a75a"
+checksum = "a694f9e0eb3104451127f6cc1e5de55f59d3b1fc8c5ddfaeb6f1e716479ceb4a"
 dependencies = [
  "cfg-if 1.0.0",
  "cvt",
  "fs_at",
  "libc",
  "normpath",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1783,6 +1783,15 @@ name = "windows-sys"
 version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "282be5f36a8ce781fad8c8ae18fa3f9beff57ec1b52cb3de0789201425d9a33d"
+dependencies = [
+ "windows-targets 0.52.6",
+]
+
+[[package]]
+name = "windows-sys"
+version = "0.59.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e38bc4d79ed67fd075bcc251a1c39b32a1776bbe92e5bef1f0bf1f8c531853b"
 dependencies = [
  "windows-targets 0.52.6",
 ]
