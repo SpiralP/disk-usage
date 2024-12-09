@@ -22,7 +22,7 @@ tokio = { version = "1", features = ["full"] }
 warp = "0.3"
 
 [target.'cfg(windows)'.dependencies]
-remove_dir_all = "0.8"
+remove_dir_all = "1.0"
 
 [build-dependencies]
 parceljs-builder = { git = "https://github.com/SpiralP/rust-parceljs.git" }
